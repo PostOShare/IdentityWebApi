@@ -1,5 +1,6 @@
 using EntityORM.DatabaseEntity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 namespace IdentityWebApi
 {
@@ -13,7 +14,16 @@ namespace IdentityWebApi
             builder.Services.AddControllers();
             builder.Services.AddDbContext<IdentityPmContext>(options => options.UseSqlServer(connection));
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(swagger =>
+                {
+                    swagger.EnableAnnotations();
+                    swagger.SwaggerDoc("v1", new OpenApiInfo
+                    {
+                        Title = "PostOShare Identity API",
+                        Version = "v1",
+                        Description = "API documentation for managing and searching users"
+                    });
+                }) ;
 
             var app = builder.Build();
 

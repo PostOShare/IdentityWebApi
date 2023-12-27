@@ -1,10 +1,15 @@
 ﻿using EntityORM.DatabaseEntity;
 using IdentityWebApi.Models.DTO;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
 
 namespace IdentityWebApi.Controllers
 {
-    [Route("api/v1/auth/[controller]")]
+    [Route("api/v1/auth/")]
     [ApiController]
     public class IdentityController : ControllerBase
     {
@@ -15,49 +20,64 @@ namespace IdentityWebApi.Controllers
             _context = context;
         }
 
+
+        /// <summary> 
+        /// Checks whether a username/password exists
+        /// </summary>
+        /// <returns> 
+        /// A ObjectResult whether the user exists (Status OK), Not found or
+        /// data is invalid (Status Bad Request)
+        /// </returns>
         [HttpPost]
-        [Route("LoginIdentity")]
-        public async Task<IActionResult> Login([FromBody] LoginRequestDTO login)
+        [Route("login-identity")]
+        [SwaggerOperation("Checks whether a username/password exists")]
+        [SwaggerResponse((int) HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO login)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest("Invalid request");
-            }
             
             //Check whether a user with username and password is existing
-            var current = _context.Logins.Where(user => user.Username.Equals(login.Username) &&
-                                                     user.PasswordHash.Equals(login.Password));
+            var current = await _context.Logins.Where(
+                                                        user => user.Username.Equals(login.Username) &&
+                                                        user.PasswordHash.Equals(login.Password)
+                                                    ).FirstOrDefaultAsync();
 
-            if (current.ToArray().Length == 0)
-            {
+            if (current == null)
                 return BadRequest("Invalid username and/or password");
-            }
 
             //If the user exists, update current login time
-            var currentLogin = _context.Logins.Find(current.ToArray()[0].Username);
-            currentLogin.LastLoginTime = DateTime.Now;
-            _context.Logins.Update(currentLogin);
+            current.LastLoginTime = DateTime.Now;
+            _context.Logins.Update(current);
             _context.SaveChanges();
 
             return Ok(new AuthResultDTO { Result = true, Token = ""});
         }
 
+        /// <summary> 
+        /// Registers data of a user
+        /// </summary>
+        /// <returns> 
+        /// A ObjectResult whether the user was created (Status Created), Not found or
+        /// data is invalid (Status Bad Request)
+        /// </returns>
         [HttpPost]
-        [Route("RegisterIdentity")]
+        [Route("register-identity")]
+        [SwaggerOperation("Registers the user data with given username")]
+        [SwaggerResponse((int)HttpStatusCode.Created)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDTO register)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest("Invalid request");
-            }
 
             //Check whether a user with username is existing
-            var current = _context.Logins.Where(user => user.Username.Equals(register.Username));
+            var current = await _context.Logins.Where(user => user.Username.Equals(register.Username))
+                                               .FirstOrDefaultAsync();
 
-            if (current.ToArray().Length > 0)
-            {
+            if (current == null)
                 return BadRequest("The given account could not be registered.");
-            }
 
             //If the user does not exist, add user with given data
             var login = new Login
