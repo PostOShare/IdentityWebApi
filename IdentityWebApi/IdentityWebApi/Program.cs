@@ -1,3 +1,5 @@
+using EntityORM.DatabaseEntity;
+using Microsoft.EntityFrameworkCore;
 
 namespace IdentityWebApi
 {
@@ -7,7 +9,9 @@ namespace IdentityWebApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllers();            
+            var connection = "Data Source=LAPTOP-01RB8N41\\MSSQL2;Initial Catalog=IdentityPM;User ID=sa;Password=Sq1231";
+            builder.Services.AddControllers();
+            builder.Services.AddDbContext<IdentityPmContext>(options => options.UseSqlServer(connection));
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -15,6 +19,7 @@ namespace IdentityWebApi
 
             if (app.Environment.IsDevelopment())
             {
+                app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
