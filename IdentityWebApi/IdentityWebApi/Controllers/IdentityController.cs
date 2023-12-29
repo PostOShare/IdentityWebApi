@@ -38,7 +38,7 @@ namespace IdentityWebApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
             
-            //Check whether a user with username and password is existing
+            // Check whether a user with the username and password exists
             var current = await _context.Logins.Where(
                                                         user => user.Username.Equals(login.Username) &&
                                                         user.PasswordHash.Equals(login.Password)
@@ -47,10 +47,20 @@ namespace IdentityWebApi.Controllers
             if (current == null)
                 return BadRequest("Invalid username and/or password");
 
-            //If the user exists, update current login time
+            // If the user exists, update login time
             current.LastLoginTime = DateTime.Now;
-            _context.Logins.Update(current);
-            _context.SaveChanges();
+
+            try
+            {
+                _context.Logins.Update(current);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log exception to Cloud Log (to be implemented)
+                return BadRequest(new AuthResultDTO
+                { Error = "An error occurred when validating login", Result = false });
+            }            
 
             return Ok(new AuthResultDTO { Result = true, Token = ""});
         }
@@ -72,14 +82,14 @@ namespace IdentityWebApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
-            //Check whether a user with username is existing
+            //Check whether a user with given username exists
             var current = await _context.Logins.Where(user => user.Username.Equals(register.Username))
                                                .FirstOrDefaultAsync();
 
-            if (current == null)
+            if (current != null)
                 return BadRequest("The given account could not be registered.");
 
-            //If the user does not exist, add user with given data
+            //If the user does not exist, add the user with given data to login
             var login = new Login
             {
                 Username = register.Username,
@@ -90,9 +100,19 @@ namespace IdentityWebApi.Controllers
                 IsActive = true
             };
 
-            _context.Add(login);
-            _context.SaveChanges();
+            try
+            {
+                _context.Add(login);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log exception to Cloud Log (to be implemented)
+                return BadRequest(new AuthResultDTO 
+                { Error = "An error occurred when adding user", Result = false });
+            }
 
+            //If the user does not exist, add the user with given data to user
             var user = new User
             {
                 Username = register.Username,
@@ -104,8 +124,17 @@ namespace IdentityWebApi.Controllers
                 Phone = register.Phone
             };
 
-            _context.Add(user);
-            _context.SaveChanges();
+            try
+            {
+                _context.Add(user);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log exception to Cloud Log (to be implemented)
+                return BadRequest(new AuthResultDTO
+                { Error = "An error occurred when adding user", Result = false });
+            }
 
             return StatusCode(StatusCodes.Status201Created);
         }
