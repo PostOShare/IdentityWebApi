@@ -31,13 +31,13 @@ namespace IdentityWebApi.Controllers
         [HttpPost]
         [Route("login-identity")]
         [SwaggerOperation("Checks whether a username/password exists")]
-        [SwaggerResponse((int) HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
         public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO login)
         {
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
-            
+
             // Check whether a user with the username and password exists
             var current = await _context.Logins.Where(
                                                         user => user.Username.Equals(login.Username) &&
@@ -58,11 +58,15 @@ namespace IdentityWebApi.Controllers
             catch (DbUpdateException ex)
             {
                 // Log exception to Cloud Log (to be implemented)
-                return BadRequest(new AuthResultDTO
-                { Error = "An error occurred when validating login", Result = false });
-            }            
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An internal error occurred",
+                                    Result = false
+                                });
+            }
 
-            return Ok(new AuthResultDTO { Result = true, Token = ""});
+            return Ok(new AuthResultDTO { Result = true, Token = "" });
         }
 
         /// <summary> 
@@ -108,8 +112,12 @@ namespace IdentityWebApi.Controllers
             catch (DbUpdateException ex)
             {
                 // Log exception to Cloud Log (to be implemented)
-                return BadRequest(new AuthResultDTO 
-                { Error = "An error occurred when adding user", Result = false });
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An error occurred when adding user",
+                                    Result = false
+                                });
             }
 
             //If the user does not exist, add the user with given data to user
@@ -132,11 +140,44 @@ namespace IdentityWebApi.Controllers
             catch (DbUpdateException ex)
             {
                 // Log exception to Cloud Log (to be implemented)
-                return BadRequest(new AuthResultDTO
-                { Error = "An error occurred when adding user", Result = false });
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An error occurred when adding user",
+                                    Result = false
+                                });
             }
 
             return StatusCode(StatusCodes.Status201Created);
+        }
+
+        /// <summary> 
+        /// Checks whether a username and email address exists
+        /// </summary>
+        /// <returns> 
+        /// A ObjectResult whether the user exists (Status OK),
+        /// username was not found or data is invalid (Status Bad Request)
+        /// </returns>
+        [HttpGet]
+        [Route("get-identity")]
+        [SwaggerOperation("Validate if the username and email exists")]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO userDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid request");
+
+            // Check whether a user with the username exists
+            var username = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
+                                               .FirstOrDefaultAsync();
+            var email = await _context.Users.Where(user => user.EmailAddress.Equals(userDTO.EmailAddress))
+                                               .FirstOrDefaultAsync();
+
+            if (username == null || email == null)
+                return BadRequest("Invalid username and/or email");
+
+            return Ok(new AuthResultDTO { Result = true });
         }
     }
 }
