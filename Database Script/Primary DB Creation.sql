@@ -11,18 +11,19 @@ BEGIN
 	CREATE TABLE [Login]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
-	  ,[PasswordHash] VARCHAR(128) NOT NULL
+	  ,[Key] NVARCHAR(300) NOT NULL
+	  ,[Salt] NVARCHAR(300) NOT NULL
       ,[RegisteredDate] DATETIME NOT NULL
       ,[LastLoginTime] DATETIME NOT NULL
       ,[UserRole] NVARCHAR(10)
       ,[IsActive] BIT NOT NULL
-	  ,CONSTRAINT [PK_IdetityPM_Login] PRIMARY KEY CLUSTERED 
+	  ,CONSTRAINT [PK_IdetityPM_Login] PRIMARY KEY 
 	  (
 		[Username] ASC
 	  )
 	);
 
-	CREATE CLUSTERED INDEX IX_Login_Username   
+	CREATE NONCLUSTERED INDEX IX_Login_Username   
     ON [Login] (Username);   
 END
 
@@ -48,6 +49,6 @@ BEGIN
         ON UPDATE CASCADE
 	); 
 
-	CREATE CLUSTERED INDEX IX_User_Username   
+	CREATE NONCLUSTERED INDEX IX_User_Username   
     ON [User] (Username);
 END

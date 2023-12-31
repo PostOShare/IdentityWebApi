@@ -11,7 +11,8 @@ BEGIN
 	CREATE TABLE [Login]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
-	  ,[PasswordHash] VARCHAR(128) NOT NULL
+	  ,[Key] NVARCHAR(300) NOT NULL
+	  ,[Salt] NVARCHAR(300) NOT NULL
       ,[RegisteredDate] DATETIME NOT NULL
       ,[LastLoginTime] DATETIME NOT NULL
       ,[UserRole] NVARCHAR(10)
@@ -22,7 +23,7 @@ BEGIN
 	  )
 	);
 
-	CREATE CLUSTERED INDEX IX_IdentitySD_Login_Username   
+	CREATE NONCLUSTERED INDEX IX_IdentitySD_Login_Username   
     ON [Login] (Username);   
 END
 
@@ -48,6 +49,6 @@ BEGIN
         ON UPDATE CASCADE
 	); 
 
-	CREATE CLUSTERED INDEX IX_IdentitySD_User_Username   
+	CREATE NONCLUSTERED INDEX IX_IdentitySD_User_Username   
     ON [User] (Username);
 END
