@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace EntityORM.DatabaseEntity;
+﻿namespace EntityORM.DatabaseEntity;
 
 public partial class User
 {
@@ -20,6 +18,5 @@ public partial class User
 
     public string? Phone { get; set; }
 
-    [ForeignKey("Username")]
     public virtual Login UsernameNavigation { get; set; } = null!;
 }

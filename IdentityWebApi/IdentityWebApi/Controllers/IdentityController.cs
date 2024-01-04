@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using System.Security.Cryptography;
 
 namespace IdentityWebApi.Controllers
 {
@@ -37,14 +38,23 @@ namespace IdentityWebApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
-
+                                  
             // Check whether a user with the username and password exists
-            var current = await _context.Logins.Where(
-                                                        user => user.Username.Equals(login.Username) &&
-                                                        user.PasswordHash.Equals(login.Password)
-                                                    ).FirstOrDefaultAsync();
+            var current = await _context.Logins.Where(user => user.Username.Equals(login.Username))
+                                               .FirstOrDefaultAsync();
 
             if (current == null)
+                return BadRequest("Invalid username and/or password");
+
+            var exists = false;
+
+            using (var deriveBytes = new Rfc2898DeriveBytes(login.Password, Convert.FromBase64String(current.Salt)))
+            {
+                byte[] newKey = deriveBytes.GetBytes(20);
+                exists = newKey.SequenceEqual(Convert.FromBase64String(current.Key));
+            }
+
+            if (!exists)
                 return BadRequest("Invalid username and/or password");
 
             // If the user exists, update login time
@@ -93,31 +103,35 @@ namespace IdentityWebApi.Controllers
             if (current != null)
                 return BadRequest("The given account could not be registered.");
 
-            //If the user does not exist, add the user with given data to login
-            var login = new Login
+            //If the user does not exist, add the user with given data to login          
+            using (var deriveBytes = new Rfc2898DeriveBytes(register.Password, 20))
             {
-                Username = register.Username,
-                PasswordHash = register.Password,
-                RegisteredDate = DateTime.Now,
-                LastLoginTime = DateTime.Now,
-                UserRole = register.UserRole,
-                IsActive = true
-            };
+                var login = new Login
+                {
+                    Username = register.Username,
+                    Salt = Convert.ToBase64String(deriveBytes.Salt),
+                    Key = Convert.ToBase64String(deriveBytes.GetBytes(20)),
+                    RegisteredDate = DateTime.Now,
+                    LastLoginTime = DateTime.Now,
+                    UserRole = register.UserRole,
+                    IsActive = true
+                };
 
-            try
-            {
-                _context.Add(login);
-                _context.SaveChanges();
-            }
-            catch (DbUpdateException ex)
-            {
-                // Log exception to Cloud Log (to be implemented)
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                                new AuthResultDTO
-                                {
-                                    Error = "An error occurred when adding user",
-                                    Result = false
-                                });
+                try
+                {
+                    _context.Add(login);
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateException ex)
+                {
+                    // Log exception to Cloud Log (to be implemented)
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                                    new AuthResultDTO
+                                    {
+                                        Error = "An error occurred when adding user",
+                                        Result = false
+                                    });
+                }
             }
 
             //If the user does not exist, add the user with given data to user
@@ -147,7 +161,7 @@ namespace IdentityWebApi.Controllers
                                     Result = false
                                 });
             }
-
+            
             return StatusCode(StatusCodes.Status201Created);
         }
 
@@ -158,8 +172,8 @@ namespace IdentityWebApi.Controllers
         /// A ObjectResult whether the user exists (Status OK),
         /// username was not found or data is invalid (Status Bad Request)
         /// </returns>
-        [HttpGet]
-        [Route("get-identity")]
+        [HttpPost]
+        [Route("search-identity")]
         [SwaggerOperation("Validate if the username and email exists")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
