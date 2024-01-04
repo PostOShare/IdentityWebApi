@@ -172,8 +172,8 @@ namespace IdentityWebApi.Controllers
         /// A ObjectResult whether the user exists (Status OK),
         /// username was not found or data is invalid (Status Bad Request)
         /// </returns>
-        [HttpGet]
-        [Route("get-identity")]
+        [HttpPost]
+        [Route("search-identity")]
         [SwaggerOperation("Validate if the username and email exists")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
