@@ -15,17 +15,19 @@ public partial class IdentityPmContext : DbContext
 
     public virtual DbSet<Login> Logins { get; set; }
 
+    public virtual DbSet<Otpvalidate> Otpvalidates { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=.\\MSSQL2;Database=IdentityPM;User=sa;Password=Sq1231;");
+        => optionsBuilder.UseSqlServer("Server=.\\MSSQL2;User=sa;Password=Sq1231;Database=IdentityPM;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Login>(entity =>
         {
-            entity.HasKey(e => e.Username).HasName("PK_IdetityPM_Login");
+            entity.HasKey(e => e.Username).HasName("PK_IdentityPM_Login");
 
             entity.ToTable("Login");
 
@@ -39,9 +41,29 @@ public partial class IdentityPmContext : DbContext
             entity.Property(e => e.UserRole).HasMaxLength(10);
         });
 
+        modelBuilder.Entity<Otpvalidate>(entity =>
+        {
+            entity.HasKey(e => e.Username).HasName("PK_IdentityPM_OTPValidate");
+
+            entity.ToTable("OTPValidate");
+
+            entity.HasIndex(e => e.Username, "IX_OTPValidate_Username");
+
+            entity.Property(e => e.Username).HasMaxLength(10);
+            entity.Property(e => e.Otp)
+                .HasColumnType("numeric(6, 0)")
+                .HasColumnName("OTP");
+            entity.Property(e => e.RequestedTime).HasColumnType("datetime");
+            entity.Property(e => e.RetryAttempt).HasColumnType("numeric(2, 0)");
+
+            entity.HasOne(d => d.UsernameNavigation).WithOne(p => p.Otpvalidate)
+                .HasForeignKey<Otpvalidate>(d => d.Username)
+                .HasConstraintName("FK_OTPValidate_Login");
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK_IdetityPM_User");
+            entity.HasKey(e => e.Id).HasName("PK_IdentityPM_User");
 
             entity.ToTable("User");
 

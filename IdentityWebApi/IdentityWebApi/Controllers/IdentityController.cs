@@ -1,5 +1,7 @@
 ﻿using EntityORM.DatabaseEntity;
+using IdentityWebApi.Models;
 using IdentityWebApi.Models.DTO;
+using IdentityWebApi.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +17,12 @@ namespace IdentityWebApi.Controllers
     public class IdentityController : ControllerBase
     {
         private readonly IdentityPmContext _context;
+        private readonly IEmailService _mailService;
 
-        public IdentityController(IdentityPmContext context)
+        public IdentityController(IdentityPmContext context, IEmailService emailService)
         {
             _context = context;
+            _mailService = emailService;
         }
 
 
@@ -192,6 +196,58 @@ namespace IdentityWebApi.Controllers
                 return BadRequest("Invalid username and/or email");
 
             return Ok(new AuthResultDTO { Result = true });
+        }
+
+        /// <summary> 
+        /// Generates an OTP, saves the OTP to DB and sends the OTP to the user's email
+        /// </summary>
+        /// <returns> 
+        /// A ObjectResult whether the OTP was created (Status Created)
+        /// or email was not sent (Status Internal Server Error)
+        /// </returns>
+        [HttpPost]
+        [Route("verify-identity")]
+        [SwaggerOperation("Check email and send OTP")]
+        [SwaggerResponse((int)HttpStatusCode.Created)]
+        public async Task<IActionResult> SendVerification([FromBody] UpdateRequestDTO userDTO)
+        {
+            var user = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
+                                                  .FirstOrDefaultAsync();
+            
+            var otpModel = new OTPModel();
+            var otp = otpModel.CreateOTP();
+
+            var otpvalidate = new Otpvalidate
+            {
+                Username = userDTO.Username,
+                Otp = otp,
+                RequestedTime = DateTime.Now,
+                RetryAttempt = 0
+            };                
+           
+            try
+            {
+                _context.Otpvalidates.Add(otpvalidate);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log exception to Cloud Log (to be implemented)
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                 new AuthResultDTO
+                                 {
+                                     Error = "An error occurred when adding user",
+                                     Result = false
+                                 });
+            }
+
+            var subject = "PostOShare OTP";
+            var body = otpModel.Body(otp);
+
+            var sent = await _mailService.SendMail(userDTO.EmailAddress, subject, body);
+
+            var code = sent ? StatusCodes.Status201Created : StatusCodes.Status500InternalServerError;
+            return StatusCode(code);
         }
     }
 }
