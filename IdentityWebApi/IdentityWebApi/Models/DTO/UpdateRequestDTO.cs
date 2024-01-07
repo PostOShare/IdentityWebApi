@@ -12,6 +12,9 @@ namespace IdentityWebApi.Models.DTO
 
         [Required]
         public decimal Otp { get; set; } = 000000;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
     }
 }
 
