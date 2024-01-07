@@ -5,6 +5,7 @@ using IdentityWebApi.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
@@ -307,6 +308,53 @@ namespace IdentityWebApi.Controllers
                                       });
                 }               
             }           
+        }
+
+        /// <summary> 
+        /// Checks the username and updates the Key and Salt
+        /// </summary>
+        /// <returns> 
+        /// A ObjectResult whether the Key and Salt were updated (Status OK), 
+        /// Not updated (Status Not Modified) or
+        /// data is invalid (Status Bad Request)
+        /// </returns>
+        [HttpPatch]
+        [Route("change-credentials-identity")]
+        [SwaggerOperation("Updates key and salt based on password sent in request for a username")]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO userDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid request");
+
+            // Check whether a user with the username and password exists
+            var current = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
+                                               .FirstOrDefaultAsync();
+
+            using (var deriveBytes = new Rfc2898DeriveBytes(userDTO.Password, 20))
+            {
+                current.Salt = Convert.ToBase64String(deriveBytes.Salt);
+                current.Key = Convert.ToBase64String(deriveBytes.GetBytes(20));
+
+                try
+                {
+                    _context.Update(current);
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateException ex)
+                {
+                    // Log exception to Cloud Log (to be implemented)
+                    return StatusCode(StatusCodes.Status304NotModified,
+                                    new AuthResultDTO
+                                    {
+                                        Error = "An error occurred when updating password",
+                                        Result = false
+                                    });
+                }
+            }
+            
+            return Ok(new AuthResultDTO { Result = true, Token = "" });
         }
     }
 }
