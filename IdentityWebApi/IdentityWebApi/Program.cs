@@ -1,4 +1,6 @@
 using EntityORM.DatabaseEntity;
+using IdentityWebApi.Configuration;
+using IdentityWebApi.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -13,6 +15,8 @@ namespace IdentityWebApi
             var connection = "Data Source=LAPTOP-01RB8N41\\MSSQL2;Initial Catalog=IdentityPM;User ID=sa;Password=Sq1231";
             builder.Services.AddControllers();
             builder.Services.AddDbContext<IdentityPmContext>(options => options.UseSqlServer(connection));
+            builder.Services.AddScoped<IEmailService,Email>();
+            builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(swagger =>
                 {
@@ -37,7 +41,6 @@ namespace IdentityWebApi
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 

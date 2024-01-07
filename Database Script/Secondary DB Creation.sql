@@ -52,3 +52,25 @@ BEGIN
 	CREATE NONCLUSTERED INDEX IX_IdentitySD_User_Username   
     ON [User] (Username);
 END
+
+IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='OTPValidate' and xtype='U')
+BEGIN
+	CREATE TABLE [OTPValidate]
+	(
+	   [Username] NVARCHAR(10) NOT NULL
+	  ,[OTP] NUMERIC(6,0)
+      ,[RequestedTime] DATETIME NOT NULL
+      ,[RetryAttempt] NUMERIC(2,0)
+	  ,CONSTRAINT [PK_IdentityPM_OTPValidate] PRIMARY KEY CLUSTERED 
+	  (
+		[Username] ASC
+	  )
+	  ,CONSTRAINT FK_OTPValidate_Login FOREIGN KEY (Username)
+        REFERENCES Login (Username)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+	); 
+
+	CREATE NONCLUSTERED INDEX IX_OTPValidate_Username   
+    ON [OTPValidate] (Username);
+END

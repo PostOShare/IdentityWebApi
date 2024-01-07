@@ -16,5 +16,7 @@ public partial class Login
 
     public bool IsActive { get; set; }
 
+    public virtual Otpvalidate? Otpvalidate { get; set; }
+
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 }
