@@ -9,6 +9,9 @@ namespace IdentityWebApi.Models.DTO
 
         [Required]
         public string EmailAddress { get; set; } = string.Empty;
+
+        [Required]
+        public decimal Otp { get; set; } = 000000;
     }
 }
 
