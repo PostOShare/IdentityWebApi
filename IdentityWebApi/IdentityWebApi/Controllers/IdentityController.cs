@@ -5,12 +5,10 @@ using IdentityWebApi.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Security.Cryptography;
-using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace IdentityWebApi.Controllers
 {
