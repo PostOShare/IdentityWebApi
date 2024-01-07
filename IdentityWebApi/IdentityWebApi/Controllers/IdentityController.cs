@@ -9,6 +9,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Security.Cryptography;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace IdentityWebApi.Controllers
 {
@@ -248,6 +249,64 @@ namespace IdentityWebApi.Controllers
 
             var code = sent ? StatusCodes.Status201Created : StatusCodes.Status500InternalServerError;
             return StatusCode(code);
+        }
+
+        /// <summary> 
+        /// Checks if the OTP response from the input is valid
+        /// </summary>
+        /// <returns> 
+        /// A ObjectResult whether the OTP is valid (Status Ok),
+        /// OTP details were not updated (Status Internal Server Error), 
+        /// or the OTP is invalid (Status Bad Request)
+        /// </returns>
+        [HttpPost]
+        [Route("validate-passcode-identity")]
+        [SwaggerOperation("Checks whether OTP response is correct")]
+        [SwaggerResponse((int)HttpStatusCode.Created)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO userDTO)
+        {
+            var exist = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
+                                                   .FirstOrDefaultAsync();
+
+            if (exist.Otp == userDTO.Otp)
+            {
+                return StatusCode(StatusCodes.Status200OK);
+            }
+            else
+            {
+                if (exist.RetryAttempt < 4)
+                {
+                    exist.RetryAttempt++;
+
+                    try
+                    {
+                        _context.Otpvalidates.Update(exist);
+                        _context.SaveChanges();
+                    }
+                    catch (DbUpdateException ex)
+                    {
+                        // Log exception to Cloud Log (to be implemented)
+                        return StatusCode(StatusCodes.Status500InternalServerError,
+                                         new AuthResultDTO
+                                         {
+                                             Error = "An error occurred when validating the OTP",
+                                             Result = false
+                                         });
+                    }
+
+                    return StatusCode(StatusCodes.Status400BadRequest);
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                                      new AuthResultDTO
+                                      {
+                                          Error = "Cannot try more than maximum attempts",
+                                          Result = false
+                                      });
+                }               
+            }           
         }
     }
 }
