@@ -1,4 +1,6 @@
 ﻿using EntityORM.DatabaseEntity;
+using IdentityWebApi.Configuration;
+using IdentityWebApi.HelperUtility;
 using IdentityWebApi.Models;
 using IdentityWebApi.Models.DTO;
 using IdentityWebApi.Services;
@@ -79,8 +81,9 @@ namespace IdentityWebApi.Controllers
                                     Result = false
                                 });
             }
-
-            return Ok(new AuthResultDTO { Result = true, Token = "" });
+            var jwtTokenGenerate = new JWTTokenGenerationHelper();
+            return Ok(new AuthResultDTO { Result = true, Token = new JWTTokenGenerationHelper()
+                                                                     .GenerateJWTToken(login) });
         }
 
         /// <summary> 
@@ -352,7 +355,7 @@ namespace IdentityWebApi.Controllers
                 }
             }
             
-            return Ok(new AuthResultDTO { Result = true, Token = "" });
+            return Ok(new AuthResultDTO { Result = true });
         }
     }
 }
