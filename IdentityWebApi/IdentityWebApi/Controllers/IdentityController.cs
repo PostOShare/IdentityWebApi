@@ -1,5 +1,4 @@
 ﻿using EntityORM.DatabaseEntity;
-using IdentityWebApi.Configuration;
 using IdentityWebApi.HelperUtility;
 using IdentityWebApi.Models;
 using IdentityWebApi.Models.DTO;
@@ -44,7 +43,7 @@ namespace IdentityWebApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
-                                  
+
             // Check whether a user with the username and password exists
             var current = await _context.Logins.Where(user => user.Username.Equals(login.Username))
                                                .FirstOrDefaultAsync();
@@ -81,9 +80,57 @@ namespace IdentityWebApi.Controllers
                                     Result = false
                                 });
             }
-            var jwtTokenGenerate = new JWTTokenGenerationHelper();
-            return Ok(new AuthResultDTO { Result = true, Token = new JWTTokenGenerationHelper()
-                                                                     .GenerateJWTToken(login) });
+
+            //Generate a refresh token and save in DB
+            var refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
+            var authUser = await _context.UserAuths.Where(user => user.Username.Equals(login.Username))
+                                                   .FirstOrDefaultAsync();
+
+            if (authUser == null)
+            {
+                var userAuth = new UserAuth
+                {
+                    Username = current.Username,
+                    Token = refresh,
+                    CreatedTime = DateTime.Now,
+                    Enabled = true
+                };
+
+                try
+                {
+                    _context.Add(userAuth);
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateException ex)
+                {
+                    // Log exception to Cloud Log (to be implemented)
+                    return StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            }
+            else
+            {
+                authUser.Token = refresh;
+                authUser.CreatedTime = DateTime.Now;
+
+                try
+                {
+                    _context.UserAuths.Update(authUser);
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateException ex)
+                {
+                    // Log exception to Cloud Log (to be implemented)
+                    return StatusCode(StatusCodes.Status500InternalServerError);
+                }
+
+            }
+
+            return Ok(new AuthResultDTO
+            {
+                Result = true,
+                RefreshToken = refresh,
+                AccessToken = new JWTTokenGenerationHelper().GenerateJWTToken(current.Username)
+            });
         }
 
         /// <summary> 
@@ -168,7 +215,7 @@ namespace IdentityWebApi.Controllers
                                     Result = false
                                 });
             }
-            
+
             return StatusCode(StatusCodes.Status201Created);
         }
 
@@ -216,7 +263,7 @@ namespace IdentityWebApi.Controllers
         {
             var user = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
                                                   .FirstOrDefaultAsync();
-            
+
             var otpModel = new OTPModel();
             var otp = otpModel.CreateOTP();
 
@@ -226,8 +273,8 @@ namespace IdentityWebApi.Controllers
                 Otp = otp,
                 RequestedTime = DateTime.Now,
                 RetryAttempt = 0
-            };                
-           
+            };
+
             try
             {
                 _context.Otpvalidates.Add(otpvalidate);
@@ -307,8 +354,8 @@ namespace IdentityWebApi.Controllers
                                           Error = "Cannot try more than maximum attempts",
                                           Result = false
                                       });
-                }               
-            }           
+                }
+            }
         }
 
         /// <summary> 
@@ -354,8 +401,62 @@ namespace IdentityWebApi.Controllers
                                     });
                 }
             }
-            
+
             return Ok(new AuthResultDTO { Result = true });
+        }
+
+        /// <summary> Creates an access token based on the user's refresh token
+        /// </summary>
+        /// <returns> 
+        /// A ObjectResult whether the token was created (Status Created),
+        /// access token was not updated (Status Internal Server Error) or
+        /// data is invalid (Status Bad Request)
+        /// </returns>
+        [HttpPost]
+        [Route("generate-accessToken")]
+        [SwaggerOperation("Creates an access token")]
+        [SwaggerResponse((int)HttpStatusCode.Created)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid request");
+
+            var authUser = await _context.UserAuths.Where(user => user.Token.Equals(request.RefreshToken))
+                                                   .FirstOrDefaultAsync();
+
+            if (authUser == null)
+                return BadRequest("Invalid request");
+
+            var refresh = authUser.Token;
+
+            // if the refresh token's created time is more than 1 day it is expired
+            if (authUser.CreatedTime.AddDays(1) > DateTime.Now)
+            {
+                refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
+                authUser.CreatedTime = DateTime.Now;
+
+                try
+                {
+                    _context.UserAuths.Update(authUser);
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateException ex)
+                {
+                    // Log exception to Cloud Log (to be implemented)
+                    return StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            }
+
+            var access = new JWTTokenGenerationHelper().GenerateJWTToken(authUser.Username);
+
+            return StatusCode(StatusCodes.Status201Created,
+                              new AuthResultDTO
+                              {
+                                  RefreshToken = refresh,
+                                  AccessToken = access,
+                                  Result = true
+                              });
         }
     }
 }

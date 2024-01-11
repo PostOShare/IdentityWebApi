@@ -1,5 +1,4 @@
-﻿using IdentityWebApi.Models.DTO;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
@@ -8,7 +7,12 @@ namespace IdentityWebApi.HelperUtility
 {
     public class JWTTokenGenerationHelper
     {
-        public string GenerateJWTToken(LoginRequestDTO login)
+        /// <summary>
+        /// Creates an access token that is valid for 15 minutes 
+        /// </summary>
+        /// <param name="username">Username that sends the token request</param>
+        /// <returns>The JWT token generated for the username</returns>
+        public string GenerateJWTToken(string username)
         {
             var handler = new JwtSecurityTokenHandler();
             var secret = "dkfgnkdfhfghfghjhjkhdfgdbnmbnsdfsdfhjkhjkssdfsgjgjhbnvbnhgjghjdgdfg";
@@ -18,10 +22,11 @@ namespace IdentityWebApi.HelperUtility
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim("username", login.Username),
-                    new Claim("iat", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString())
+                    new Claim("username", username),
+                    new Claim("iat", 
+                              DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString()) // issued at timestamp
                 }),
-                Expires = DateTime.UtcNow.AddDays(1),
+                Expires = DateTime.UtcNow.AddMinutes(15),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
                                                             SecurityAlgorithms.HmacSha256)
             };
