@@ -18,5 +18,7 @@ public partial class Login
 
     public virtual Otpvalidate? Otpvalidate { get; set; }
 
+    public virtual UserAuth? UserAuth { get; set; }
+
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 }
