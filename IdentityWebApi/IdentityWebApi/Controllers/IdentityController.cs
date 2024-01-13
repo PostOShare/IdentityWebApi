@@ -6,10 +6,13 @@ using IdentityWebApi.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace IdentityWebApi.Controllers
 {
@@ -457,6 +460,45 @@ namespace IdentityWebApi.Controllers
                                   AccessToken = access,
                                   Result = true
                               });
+        }
+
+        /// <summary> Validates an access token
+        /// </summary>
+        /// <returns> 
+        /// A ActionResult whether the token is valid (Status Ok),
+        /// not valid or data is invalid (Status Bad Request)
+        /// </returns>
+        [HttpPost]
+        [Route("validate-accessToken")]
+        [SwaggerOperation("Validates an access token")]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        public ActionResult ValidateAccessToken([FromBody] CreateTokenRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid request");
+
+            var handler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes("dkfgnkdfhfghfghjhjkhdfgdbnmbnsdfsdfhjkhjkssdfsgjgjhbnvbnhgjghjdgdfg");
+
+            handler.ValidateToken(request.AccessToken, new TokenValidationParameters()
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                RequireExpirationTime = false,
+                ValidateLifetime = false
+            },out var validateToken);
+
+            var token = (JwtSecurityToken)validateToken;
+            var expiry = Convert.ToInt64(token.Claims.Where(p => p.Type == "exp").FirstOrDefault()?.Value);
+            var expired = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() > expiry;
+
+            if (expired)
+                return BadRequest("Token is expired.");
+            else
+                return Ok();            
         }
     }
 }

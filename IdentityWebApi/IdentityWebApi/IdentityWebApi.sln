@@ -5,7 +5,7 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityWebApi", "IdentityWebApi.csproj", "{FF0E2FB5-363F-456A-A2D7-A48A6A6AF9C1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityORM", "..\EntityORM\EntityORM.csproj", "{FE7239B9-FE31-46B2-80EE-23EEB6DC6C50}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EntityORM", "..\EntityORM\EntityORM.csproj", "{FE7239B9-FE31-46B2-80EE-23EEB6DC6C50}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

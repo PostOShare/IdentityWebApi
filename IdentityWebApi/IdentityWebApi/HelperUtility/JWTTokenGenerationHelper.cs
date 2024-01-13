@@ -7,6 +7,8 @@ namespace IdentityWebApi.HelperUtility
 {
     public class JWTTokenGenerationHelper
     {
+        private readonly int ExpireTimeAccess = 15;
+
         /// <summary>
         /// Creates an access token that is valid for 15 minutes 
         /// </summary>
@@ -22,11 +24,9 @@ namespace IdentityWebApi.HelperUtility
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim("username", username),
-                    new Claim("iat", 
-                              DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString()) // issued at timestamp
+                    new Claim("username", username)                    
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(15),
+                Expires = DateTime.UtcNow.AddMinutes(ExpireTimeAccess),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
                                                             SecurityAlgorithms.HmacSha256)
             };
