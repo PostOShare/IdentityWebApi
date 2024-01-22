@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace EntityORM.DatabaseEntity;
 
@@ -22,8 +23,11 @@ public partial class IdentityPmContext : DbContext
     public virtual DbSet<UserAuth> UserAuths { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=.\\MSSQL2;User=sa;Password=Sq1231;Database=IdentityPM;");
+    {
+        var builder = new ConfigurationBuilder();
+        builder.AddJsonFile(Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).FullName, "EntityORM", "appsettings.json"));
+        optionsBuilder.UseSqlServer(builder.Build().GetSection("ConnectionDB").Value);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
