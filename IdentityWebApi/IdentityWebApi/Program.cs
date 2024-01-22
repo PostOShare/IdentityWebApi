@@ -12,9 +12,8 @@ namespace IdentityWebApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            var connection = "Data Source=LAPTOP-01RB8N41\\MSSQL2;Initial Catalog=IdentityPM;User ID=sa;Password=Sq1231";
             builder.Services.AddControllers();
-            builder.Services.AddDbContext<IdentityPmContext>(options => options.UseSqlServer(connection));
+            builder.Services.AddDbContext<IdentityPmContext>(options => options.UseSqlServer(builder.Configuration.GetSection("ConnectionDB").Value));
             builder.Services.AddScoped<IEmailService,Email>();
             builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
             builder.Services.AddEndpointsApiExplorer();
@@ -28,7 +27,7 @@ namespace IdentityWebApi
                         Description = "API documentation for managing and searching users"
                     });
                 }) ;
-
+            builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())

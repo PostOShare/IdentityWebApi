@@ -1,8 +1,11 @@
-﻿namespace IdentityWebApi.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace IdentityWebApi.Models
 {
     public class TokenModel
     {
-        public required string Token { get; set; }
+        [Required]
+        public string Token { get; set; } = string.Empty;
 
         public DateTime Created { get; set; }
     }

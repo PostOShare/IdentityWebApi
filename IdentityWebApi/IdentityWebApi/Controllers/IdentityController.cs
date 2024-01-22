@@ -3,7 +3,6 @@ using IdentityWebApi.HelperUtility;
 using IdentityWebApi.Models;
 using IdentityWebApi.Models.DTO;
 using IdentityWebApi.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -41,7 +40,7 @@ namespace IdentityWebApi.Controllers
         [Route("login-identity")]
         [SwaggerOperation("Checks whether a username/password exists")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO login)
         {
             if (!ModelState.IsValid)
@@ -147,7 +146,7 @@ namespace IdentityWebApi.Controllers
         [Route("register-identity")]
         [SwaggerOperation("Registers the user data with given username")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDTO register)
         {
             if (!ModelState.IsValid)
@@ -233,7 +232,7 @@ namespace IdentityWebApi.Controllers
         [Route("search-identity")]
         [SwaggerOperation("Validate if the username and email exists")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO userDTO)
         {
             if (!ModelState.IsValid)
@@ -315,7 +314,7 @@ namespace IdentityWebApi.Controllers
         [Route("validate-passcode-identity")]
         [SwaggerOperation("Checks whether OTP response is correct")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO userDTO)
         {
             var exist = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
@@ -373,7 +372,7 @@ namespace IdentityWebApi.Controllers
         [Route("change-credentials-identity")]
         [SwaggerOperation("Updates key and salt based on password sent in request for a username")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO userDTO)
         {
             if (!ModelState.IsValid)
@@ -419,7 +418,7 @@ namespace IdentityWebApi.Controllers
         [Route("generate-accessToken")]
         [SwaggerOperation("Creates an access token")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO request)
         {
             if (!ModelState.IsValid)
@@ -472,7 +471,7 @@ namespace IdentityWebApi.Controllers
         [Route("validate-accessToken")]
         [SwaggerOperation("Validates an access token")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(BadRequest))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public ActionResult ValidateAccessToken([FromBody] CreateTokenRequestDTO request)
         {
             if (!ModelState.IsValid)
