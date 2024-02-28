@@ -36,6 +36,12 @@ The API and the SQL Server instance need to be published to a cloud provider to 
 - [Installation of DB](https://github.com/PostOShare/IdentityWebApi/wiki/Installation-of-DB)
 - [Create a Lambda function, HTTP API and deploy the Identity API](https://github.com/PostOShare/IdentityWebApi/wiki/Create-a-Lambda-function,-HTTP-API-and-deploy-the-Identity-API)
 
+# AWS Deployment
+
+The API deployment in AWS is illustrated below:
+
+![Architecture of API deployment](https://github.com/PostOShare/IdentityWebApi/assets/17848426/79c4a4f6-56be-4b6b-9ad1-c18bcb527202)
+
 # Dependencies
 
 ## Production dependencies
@@ -53,3 +59,35 @@ The API and the SQL Server instance need to be published to a cloud provider to 
 
 - Swashbuckle.AspNetCore Version 6.5.0
 - Swashbuckle.AspNetCore.Annotations Version 6.5.0
+
+# Endpoints of the API
+
+## api/v1/auth/login-identity
+
+This endpoint is used to send user login details and check whether they are available.
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/auth/login-identity' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "username": "username",
+  "password": "password",
+  "registeredDate": "2024-02-28T15:01:55.693Z",
+  "lastLoginTime": "2024-02-28T15:01:55.693Z",
+  "userRole": "userRole",
+  "isActive": true
+}'
+```
+
+### Responses
+
+| Status              | Status code | Reason                                        |
+| -----------------   | ----------- | --------------------------------------------- |
+|OK                    | 200        | Valid login                                   |
+|Bad Request           | 400        | Invalid login or data is not in correct format|
+|Internal Server Error | 500        | Server error                                  |
+
