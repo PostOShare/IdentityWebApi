@@ -23,10 +23,8 @@ The following need to be available to ensure that the API and the SQL server dat
 
 Steps that can be used to setup the API are
 
-```
+```cmd
 git clone https://github.com/PostOShare/IdentityWebApi.git
-
-# Restore packages
 
 cd IdentityWebApi\IdentityWebApi
 dotnet restore
@@ -34,15 +32,15 @@ cd ..\EntityORM
 dotnet restore
 ```
 
-The API and the SQL Server instance need to be published to a cloud provider to ensure that remote connections can call the API. [AWS](https://aws.amazon.com/) is used to publish the API and host the instance. Steps to deploy the API and the instance are
+The API and the SQL Server instance need to be published to a cloud provider to ensure that remote connections can call the API. [AWS](https://aws.amazon.com/) is used as the provider to publish the API and host the instance. Steps to deploy the API and the instance are
 
 - [Create a VPC to deploy the Identity API](https://github.com/PostOShare/IdentityWebApi/wiki/Create-a-VPC-to-deploy-the-Identity-API)
 - [Installation of DB](https://github.com/PostOShare/IdentityWebApi/wiki/Installation-of-DB)
 - [Create a Lambda function, HTTP API and deploy the Identity API](https://github.com/PostOShare/IdentityWebApi/wiki/Create-a-Lambda-function,-HTTP-API-and-deploy-the-Identity-API)
 
-# AWS Deployment
+# Deployment
 
-The API deployment in AWS is illustrated below:
+The architecture of the deployment of the API and the SQL Server instance in AWS is illustrated below:
 
 ![Architecture of API deployment](https://github.com/PostOShare/IdentityWebApi/assets/17848426/79c4a4f6-56be-4b6b-9ad1-c18bcb527202)
 
@@ -68,7 +66,7 @@ The API deployment in AWS is illustrated below:
 
 ## api/v1/auth/login-identity
 
-This endpoint is used to send user login details and check whether they are available.
+This endpoint is used to check whether login details are available.
 
 ### Sample request
 
@@ -89,9 +87,67 @@ curl -X 'POST' \
 
 ### Responses
 
-| Status              | Status code | Reason                                        |
-| -----------------   | ----------- | --------------------------------------------- |
-|OK                    | 200        | Valid login                                   |
-|Bad Request           | 400        | Invalid login or data is not in correct format|
-|Internal Server Error | 500        | Server error                                  |
+- 200 - User exists
+  	
+  **Sample Response body**
+  ```json
+  {
+    "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5MzA0ODk5LCJleHAiOjE3MDkzMDU3OTksImlhdCI6MTcwOTMwNDg5OX0.Hw1GmtW4O245qfD11cHOCQtQ91p2inAOlm6cIjL31rU",
+    "result": true,
+    "error": ""
+  }
+  ```
 
+- 400 - Not found or data is invalid
+- 500 - An internal error occurred
+
+  **Response body**
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An internal error occurred"
+  }
+  ```
+
+## api/v1/auth/register-identity
+
+This endpoint is used to register the user data with the given username.
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/auth/register-identity' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "username": "user",
+  "password": "password",
+  "title": "mr.",
+  "firstName": "Edwin",
+  "lastName": "Doe",
+  "suffix": "",
+  "emailAddress": "edwar123@outlook.com",
+  "phone": "1234561234",
+  "userRole": "user"
+}'
+```
+
+### Responses
+
+- 201 - User created
+- 400 - User exists or data is invalid
+- 500 - An error occurred when adding user
+
+  **Response body**
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An error occurred when adding user"
+  }
+  ```
