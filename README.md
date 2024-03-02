@@ -99,7 +99,7 @@ curl -X 'POST' \
   }
   ```
 
-- 400 - Not found or data is invalid
+- 400 - Invalid request, Invalid username and/or password (User does not exist)
 - 500 - An internal error occurred
 
   **Response body**
@@ -139,7 +139,7 @@ curl -X 'POST' \
 ### Responses
 
 - 201 - User created
-- 400 - User exists or data is invalid
+- 400 - Invalid request, The given account could not be registered (User exists)
 - 500 - An error occurred when adding user
 
   **Response body**
@@ -151,3 +151,38 @@ curl -X 'POST' \
     "error": "An error occurred when adding user"
   }
   ```
+
+## api/v1/auth/search-identity
+
+This endpoint is used to check whether a user exists. Please note that the values for OTP and Password fields are not validated, but should be passed when making a request. 
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/auth/search-identity' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "username": "user",
+  "emailAddress": "edwar123@outlook.com",
+  "otp": 0,
+  "password": "password"
+}'
+```
+
+### Responses
+
+- 200 - User exists
+  	
+  **Sample Response body**
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": true,
+    "error": ""
+  }
+  ```
+
+- 400 - Invalid username and/or email (User does not exist), Invalid request
