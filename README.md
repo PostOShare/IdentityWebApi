@@ -42,25 +42,26 @@ The API and the SQL Server instance need to be published to a cloud provider to 
 
 The architecture of the deployment of the API and the SQL Server instance in AWS is illustrated below:
 
-![Architecture of API deployment](https://github.com/PostOShare/IdentityWebApi/assets/17848426/79c4a4f6-56be-4b6b-9ad1-c18bcb527202)
+![Architecture of API deployment](https://github.com/PostOShare/IdentityWebApi/assets/17848426/576dbbbd-b03b-4190-8e3c-0345017da049)
 
 # Dependencies
 
 ## Production dependencies
 
--  Amazon.Lambda.AspNetCoreServer Version 7.2.0 
--  Amazon.Lambda.AspNetCoreServer.Hosting Version 1.3.1 
--  MailKit Version 4.3.0 
--  Microsoft.AspNetCore.Authentication.JwtBearer Version 6.0.26 
--  Microsoft.AspNetCore.Identity.EntityFrameworkCore Version 6.0.26 
--  Microsoft.AspNetCore.Identity.UI Version 6.0.26 
--  Microsoft.EntityFrameworkCore.SqlServer Version 6.0.26 
--  Microsoft.EntityFrameworkCore.Tools Version 6.0.26
+-  Amazon.Lambda.AspNetCoreServer                       | Version 7.2.0 
+-  Amazon.Lambda.AspNetCoreServer.Hosting               | Version 1.3.1 
+-  MailKit                                              | Version 4.3.0 
+-  Microsoft.AspNetCore.Authentication.JwtBearer        | Version 6.0.26 
+-  Microsoft.AspNetCore.Identity.EntityFrameworkCore    | Version 6.0.26 
+-  Microsoft.AspNetCore.Identity.UI                     | Version 6.0.26 
+-  Microsoft.EntityFrameworkCore.SqlServer              | Version 6.0.26 
+-  Microsoft.EntityFrameworkCore.Tools                  | Version 6.0.26
 
 ## Development dependencies
 
-- Swashbuckle.AspNetCore Version 6.5.0
-- Swashbuckle.AspNetCore.Annotations Version 6.5.0
+These dependencies are used only in development:
+- Swashbuckle.AspNetCore                                | Version 6.5.0
+- Swashbuckle.AspNetCore.Annotations                    | Version 6.5.0
 
 # Endpoints of the API
 
@@ -167,7 +168,7 @@ curl -X 'POST' \
   "username": "user",
   "emailAddress": "edwar123@outlook.com",
   "otp": 0,
-  "password": "password"
+  "password": ""
 }'
 ```
 
@@ -186,3 +187,28 @@ curl -X 'POST' \
   ```
 
 - 400 - Invalid username and/or email (User does not exist), Invalid request
+
+## api/v1/auth/verify-identity
+
+This endpoint is used to generate an OTP, save the OTP to DB and send the OTP to the user's email. Please note that the values for OTP and Password fields are not validated, but should be passed when making a request.
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/auth/verify-identity' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "username": "user",
+  "emailAddress": "edwar123@outlook.com",
+  "otp": 0,
+  "password": ""
+}'
+```
+
+### Responses
+
+- 201 - Created
+- 400 - Invalid username and/or email (User does not exist), Invalid request
+- 500 - An error occurred when adding user, InternalServerError (Error when sending email)
