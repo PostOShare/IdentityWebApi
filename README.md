@@ -8,15 +8,16 @@
 
 </div>
 
-IdentityWebApi is a .NET 6 Web API used to manage user data and authentication in PostOShare. It depends on [.NET 6](https://dotnet.microsoft.com/en-us/) and communicates with a [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-2022) using [Entity Framework core](https://learn.microsoft.com/en-us/ef/core/).
+IdentityWebApi is a .NET 6 Web API used to manage user data and authentication in PostOShare. It depends on [.NET 6](https://dotnet.microsoft.com/en-us/) and communicates with a [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-2022) database using [Entity Framework core](https://learn.microsoft.com/en-us/ef/core/).
 
 # Prerequisites
 
-The following need to be available to ensure that the API and the SQL server database can be published
+The following need to be available to ensure that the API and the SQL Server database can be setup:
 
 - [.NET 6](https://dotnet.microsoft.com/en-us/)
 - [Visual Studio 2022 or higher](https://visualstudio.microsoft.com/downloads/)
 - [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-2022)
+- [SQL Server Management Studio (SSMS)](https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms?view=sql-server-ver16)
 - [AWS user account](https://aws.amazon.com/)
   
 # Installation
