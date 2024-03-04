@@ -168,7 +168,7 @@ curl -X 'POST' \
   "username": "user",
   "emailAddress": "edwar123@outlook.com",
   "otp": 0,
-  "password": ""
+  "password": "password"
 }'
 ```
 
@@ -203,7 +203,7 @@ curl -X 'POST' \
   "username": "user",
   "emailAddress": "edwar123@outlook.com",
   "otp": 0,
-  "password": ""
+  "password": "password"
 }'
 ```
 
@@ -212,3 +212,95 @@ curl -X 'POST' \
 - 201 - Created
 - 400 - Invalid username and/or email (User does not exist), Invalid request
 - 500 - An error occurred when adding user, InternalServerError (Error when sending email)
+
+## api/v1/auth/validate-passcode-identity
+
+This endpoint is used to check if the OTP response sent when validating a user is valid. Please note that the values for Email and Password fields are not validated, but should be passed when making a request.
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/auth/validate-passcode-identity' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "username": "user",
+  "emailAddress": "edwar123@outlook.com",
+  "otp": 236784,
+  "password": "password"
+}'
+```
+
+### Responses
+
+- 200 - OTP is valid
+- 400 - OTP is invalid, Invalid request
+- 500 - An error occurred when validating the OTP
+
+  **Response body**
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An error occurred when validating the OTP"
+  }
+  ```
+
+  500 - Cannot try more than maximum attempts
+
+  **Response body**
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "Cannot try more than maximum attempts"
+  }
+  ```
+
+## api/v1/auth/change-credentials-identity
+
+This endpoint is used to update key and salt of a user based on password sent in the request. Please note that the values for Email and OTP fields are not validated, but should be passed when making a request.
+
+### Sample request
+
+```
+curl -X 'PATCH' \
+  'https://localhost:7224/api/v1/auth/change-credentials-identity' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "username": "user",
+  "emailAddress": "edwar123@outlook.com",
+  "otp": 0,
+  "password": "password"
+}'
+```
+
+### Responses
+
+- 200 - Key and Salt for the user were updated
+
+```json
+{
+  "refreshToken": "",
+  "accessToken": "",
+  "result": true,
+  "error": ""
+}
+```
+
+- 304 - Key and Salt for the user were not updated
+
+```json
+{
+  "refreshToken": "",
+  "accessToken": "",
+  "result": false,
+  "error": "An error occurred when updating password"
+}
+```
+
+- 400 - Invalid request
