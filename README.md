@@ -91,7 +91,7 @@ curl -X 'POST' \
 
 - 200 - User exists
   	
-  **Sample Response body**
+  **Sample Response**
   ```json
   {
     "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
@@ -104,7 +104,6 @@ curl -X 'POST' \
 - 400 - Invalid request, Invalid username and/or password (User does not exist)
 - 500 - An internal error occurred
 
-  **Response body**
   ```json
   {
     "refreshToken": "",
@@ -144,7 +143,6 @@ curl -X 'POST' \
 - 400 - Invalid request, The given account could not be registered (User exists)
 - 500 - An error occurred when adding user
 
-  **Response body**
   ```json
   {
     "refreshToken": "",
@@ -177,7 +175,6 @@ curl -X 'POST' \
 
 - 200 - User exists
   	
-  **Sample Response body**
   ```json
   {
     "refreshToken": "",
@@ -239,7 +236,6 @@ curl -X 'POST' \
 - 400 - OTP is invalid, Invalid request
 - 500 - An error occurred when validating the OTP
 
-  **Response body**
   ```json
   {
     "refreshToken": "",
@@ -251,7 +247,6 @@ curl -X 'POST' \
 
   500 - Cannot try more than maximum attempts
 
-  **Response body**
   ```json
   {
     "refreshToken": "",
@@ -305,3 +300,60 @@ curl -X 'PATCH' \
 ```
 
 - 400 - Invalid request
+
+## api/v1/auth/generate-accessToken
+
+This endpoint is used to create an access token based on the user's refresh token. Please note that the access token is not validated, but should be passed when making a request.
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/auth/generate-accessToken' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5MzA0ODk5LCJleHAiOjE3MDkzMDU3OTksImlhdCI6MTcwOTMwNDg5OX0.Hw1GmtW4O245qfD11cHOCQtQ91p2inAOlm6cIjL31rU"
+}'
+```
+
+### Responses
+
+- 201 - Access token was generated
+
+  **Sample Response**
+ 
+  ```json
+  {
+    "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5NjUwMzgwLCJleHAiOjE3MDk2NTEyODAsImlhdCI6MTcwOTY1MDM4MH0.D-JUimEo_6UDQvGf_ZggyXM_XoXEIaJ6R_RErMK0qa8",
+    "result": true,
+    "error": ""
+  }
+  ```
+
+- 400 - Invalid request
+- 500 - InternalServerError
+
+## api/v1/auth/validate-accessToken
+
+This endpoint is used to validate an access token. Please note that the refresh token is not validated, but should be passed when making a request.
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/auth/validate-accessToken' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5MzA0ODk5LCJleHAiOjE3MDkzMDU3OTksImlhdCI6MTcwOTMwNDg5OX0.Hw1GmtW4O245qfD11cHOCQtQ91p2inAOlm6cIjL31rU"
+}'
+```
+
+### Responses
+
+- 200 - Access token is valid
+- 400 - Invalid request, Token is expired
