@@ -254,17 +254,25 @@ namespace IdentityWebApi.Controllers
         /// Generates an OTP, saves the OTP to DB and sends the OTP to the user's email
         /// </summary>
         /// <returns> 
-        /// A ObjectResult whether the OTP was created (Status Created)
+        /// A ObjectResult whether the OTP was created (Status Created),
+        /// username was not found or data is invalid (Status Bad Request)
         /// or email was not sent (Status Internal Server Error)
         /// </returns>
         [HttpPost]
         [Route("verify-identity")]
         [SwaggerOperation("Check email and send OTP")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> SendVerification([FromBody] UpdateRequestDTO userDTO)
         {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid request");
+
             var user = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
                                                   .FirstOrDefaultAsync();
+
+            if(user == null)
+                return BadRequest("Invalid username");
 
             var otpModel = new OTPModel();
             var otp = otpModel.CreateOTP();
@@ -317,8 +325,14 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO userDTO)
         {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid request");
+
             var exist = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
                                                    .FirstOrDefaultAsync();
+
+            if (exist == null)
+                return BadRequest("Invalid username");
 
             if (exist.Otp == userDTO.Otp)
             {
@@ -346,7 +360,7 @@ namespace IdentityWebApi.Controllers
                                          });
                     }
 
-                    return StatusCode(StatusCodes.Status400BadRequest);
+                    return BadRequest("Invalid OTP");
                 }
                 else
                 {
@@ -381,6 +395,9 @@ namespace IdentityWebApi.Controllers
             // Check whether a user with the username and password exists
             var current = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
                                                .FirstOrDefaultAsync();
+
+            if (current == null)
+                return BadRequest("Invalid username");
 
             using (var deriveBytes = new Rfc2898DeriveBytes(userDTO.Password, 20))
             {
