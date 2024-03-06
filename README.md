@@ -208,7 +208,7 @@ curl -X 'POST' \
 ### Responses
 
 - 201 - Created
-- 400 - Invalid username and/or email (User does not exist), Invalid request
+- 400 - Invalid username (User does not exist), Invalid request
 - 500 - An error occurred when adding user, InternalServerError (Error when sending email)
 
 ## api/v1/auth/validate-passcode-identity
@@ -233,7 +233,7 @@ curl -X 'POST' \
 ### Responses
 
 - 200 - OTP is valid
-- 400 - OTP is invalid, Invalid request
+- 400 - Invalid username, Invalid OTP, Invalid request
 - 500 - An error occurred when validating the OTP
 
   ```json
@@ -299,7 +299,7 @@ curl -X 'PATCH' \
 }
 ```
 
-- 400 - Invalid request
+- 400 - Invalid request, Invalid username
 
 ## api/v1/auth/generate-accessToken
 
