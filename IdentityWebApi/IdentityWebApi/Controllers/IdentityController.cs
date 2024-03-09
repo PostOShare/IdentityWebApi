@@ -21,11 +21,13 @@ namespace IdentityWebApi.Controllers
     {
         private readonly IdentityPmContext _context;
         private readonly IEmailService _mailService;
+        private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IdentityPmContext context, IEmailService emailService)
+        public IdentityController(IdentityPmContext context, IEmailService emailService, ILogger<IdentityController> logger)
         {
             _context = context;
             _mailService = emailService;
+            _logger = logger;
         }
 
 
@@ -46,12 +48,37 @@ namespace IdentityWebApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
+                                   Constants.LOGINIDENTITYROUTE, login.Username);
+
             // Check whether a user with the username and password exists
-            var current = await _context.Logins.Where(user => user.Username.Equals(login.Username))
-                                               .FirstOrDefaultAsync();
+
+            Login? current = null;
+
+            try
+            {
+                current = await _context.Logins.Where(user => user.Username.Equals(login.Username))
+                                                   .FirstOrDefaultAsync();
+            }
+            catch(Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An internal error occurred",
+                                    Result = false
+                                });
+            }
 
             if (current == null)
+            {
+                _logger.LogError("Route: {method}, User: {username} | Invalid username and/or password", 
+                                 Constants.LOGINIDENTITYROUTE, login.Username);
+
                 return BadRequest("Invalid username and/or password");
+            }
 
             var exists = false;
 
@@ -62,19 +89,29 @@ namespace IdentityWebApi.Controllers
             }
 
             if (!exists)
+            {
+                _logger.LogError("Route: {method}, User: {username} | Invalid username and/or password",
+                                 Constants.LOGINIDENTITYROUTE, login.Username);
+
                 return BadRequest("Invalid username and/or password");
+            }
 
             // If the user exists, update login time
             current.LastLoginTime = DateTime.Now;
 
             try
             {
+                _logger.LogInformation("Route: {method}, User: {username} | Updating date and time for current login: {logintime}",
+                                       Constants.LOGINIDENTITYROUTE, login.Username, current.LastLoginTime);
+
                 _context.Logins.Update(current);
                 _context.SaveChanges();
             }
             catch (DbUpdateException ex)
             {
-                // Log exception to Cloud Log (to be implemented)
+                _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
+                                 Constants.LOGINIDENTITYROUTE, login.Username, ex.Message);
+
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                 new AuthResultDTO
                                 {
@@ -84,12 +121,39 @@ namespace IdentityWebApi.Controllers
             }
 
             //Generate a refresh token and save in DB
+
+            _logger.LogInformation("Route: {method}, User: {username} | Generate a refresh token and save in DB",
+                                   Constants.LOGINIDENTITYROUTE, login.Username);
+
             var refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
-            var authUser = await _context.UserAuths.Where(user => user.Username.Equals(login.Username))
+
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether login exists",
+                                   Constants.LOGINIDENTITYROUTE, login.Username);
+
+            UserAuth? authUser = null;
+
+            try
+            { 
+                authUser = await _context.UserAuths.Where(user => user.Username.Equals(login.Username))
                                                    .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An internal error occurred",
+                                    Result = false
+                                });
+            }
 
             if (authUser == null)
             {
+                _logger.LogInformation("Route: {method}, User: {username} | New login", Constants.LOGINIDENTITYROUTE,
+                                       login.Username);
+
                 var userAuth = new UserAuth
                 {
                     Username = current.Username,
@@ -100,29 +164,52 @@ namespace IdentityWebApi.Controllers
 
                 try
                 {
+                    _logger.LogInformation("Route: {method}, User: {username} | Adding new login",
+                                           Constants.LOGINIDENTITYROUTE, login.Username);
+
                     _context.Add(userAuth);
                     _context.SaveChanges();
                 }
                 catch (DbUpdateException ex)
                 {
-                    // Log exception to Cloud Log (to be implemented)
-                    return StatusCode(StatusCodes.Status500InternalServerError);
+                    _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
+                                     Constants.LOGINIDENTITYROUTE, login.Username, ex.Message);
+
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An internal error occurred",
+                                    Result = false
+                                });
                 }
             }
             else
             {
+                _logger.LogInformation("Route: {method}, User: {username} | Login exists",
+                                       Constants.LOGINIDENTITYROUTE, login.Username);
+
                 authUser.Token = refresh;
                 authUser.CreatedTime = DateTime.Now;
 
                 try
                 {
+                    _logger.LogInformation("Route: {method}, User: {username} | Updating login",
+                                           Constants.LOGINIDENTITYROUTE, login.Username);
+
                     _context.UserAuths.Update(authUser);
                     _context.SaveChanges();
                 }
                 catch (DbUpdateException ex)
                 {
-                    // Log exception to Cloud Log (to be implemented)
-                    return StatusCode(StatusCodes.Status500InternalServerError);
+                    _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
+                                     Constants.LOGINIDENTITYROUTE, login.Username, ex.Message);
+
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An internal error occurred",
+                                    Result = false
+                                });
                 }
 
             }

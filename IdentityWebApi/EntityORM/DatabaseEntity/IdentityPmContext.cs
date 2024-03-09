@@ -25,7 +25,7 @@ public partial class IdentityPmContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         var builder = new ConfigurationBuilder();
-        builder.AddJsonFile(Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).FullName, "EntityORM", "appsettings.json"));
+        builder.AddJsonFile("eformsettings.json");
         optionsBuilder.UseSqlServer(builder.Build().GetSection("ConnectionDB").Value);
     }
 

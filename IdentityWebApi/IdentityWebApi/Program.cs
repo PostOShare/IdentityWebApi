@@ -17,6 +17,7 @@ namespace IdentityWebApi
             builder.Services.AddScoped<IEmailService,Email>();
             builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
             builder.Services.AddEndpointsApiExplorer();
+            builder.Logging.AddAWSProvider();
             builder.Services.AddSwaggerGen(swagger =>
                 {
                     swagger.EnableAnnotations();
