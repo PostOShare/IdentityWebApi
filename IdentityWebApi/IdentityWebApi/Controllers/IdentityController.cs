@@ -36,13 +36,15 @@ namespace IdentityWebApi.Controllers
         /// </summary>
         /// <returns> 
         /// A ObjectResult whether the user exists (Status OK), Not found or
-        /// data is invalid (Status Bad Request)
+        /// data is invalid (Status BadRequest), or an internal error occurred 
+        /// (Status InternalServerError)
         /// </returns>
         [HttpPost]
         [Route("login-identity")]
         [SwaggerOperation("Checks whether a username/password exists")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO login)
         {
             if (!ModelState.IsValid)
@@ -58,7 +60,7 @@ namespace IdentityWebApi.Controllers
             try
             {
                 current = await _context.Logins.Where(user => user.Username.Equals(login.Username))
-                                                   .FirstOrDefaultAsync();
+                                               .FirstOrDefaultAsync();
             }
             catch(Exception ex)
             {
@@ -226,27 +228,58 @@ namespace IdentityWebApi.Controllers
         /// Registers data of a user
         /// </summary>
         /// <returns> 
-        /// A ObjectResult whether the user was created (Status Created), Not found or
-        /// data is invalid (Status Bad Request)
+        /// A ObjectResult whether the user was created (Status Created), User exists or
+        /// data is invalid (Status BadRequest), or an internal error occurred 
+        /// (Status InternalServerError) 
         /// </returns>
         [HttpPost]
         [Route("register-identity")]
         [SwaggerOperation("Registers the user data with given username")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDTO register)
         {
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
             //Check whether a user with given username exists
-            var current = await _context.Logins.Where(user => user.Username.Equals(register.Username))
+
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
+                                   Constants.REGISTERIDENTITYROUTE, register.Username);
+
+            Login? current = null;
+
+            try
+            {
+                current = await _context.Logins.Where(user => user.Username.Equals(register.Username))
                                                .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An internal error occurred",
+                                    Result = false
+                                });
+            }
 
             if (current != null)
-                return BadRequest("The given account could not be registered.");
+            {
+                _logger.LogInformation("Route: {method}, User: {username} | User exists",
+                                       Constants.REGISTERIDENTITYROUTE, register.Username);
 
-            //If the user does not exist, add the user with given data to login          
+                return BadRequest("The given account could not be registered.");
+            }
+
+            //If the user does not exist, add the user with given data to login
+
+            _logger.LogInformation("Route: {method}, User: {username} |  Add the user to Login",
+                                   Constants.REGISTERIDENTITYROUTE, register.Username);
+
             using (var deriveBytes = new Rfc2898DeriveBytes(register.Password, 20))
             {
                 var login = new Login
@@ -267,7 +300,9 @@ namespace IdentityWebApi.Controllers
                 }
                 catch (DbUpdateException ex)
                 {
-                    // Log exception to Cloud Log (to be implemented)
+                    _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
+                                        Constants.REGISTERIDENTITYROUTE, register.Username, ex.Message);
+
                     return StatusCode(StatusCodes.Status500InternalServerError,
                                     new AuthResultDTO
                                     {
@@ -277,7 +312,9 @@ namespace IdentityWebApi.Controllers
                 }
             }
 
-            //If the user does not exist, add the user with given data to user
+            _logger.LogInformation("Route: {method}, User: {username} |  Add the user to User",
+                                   Constants.REGISTERIDENTITYROUTE, register.Username);
+
             var user = new User
             {
                 Username = register.Username,
@@ -296,7 +333,9 @@ namespace IdentityWebApi.Controllers
             }
             catch (DbUpdateException ex)
             {
-                // Log exception to Cloud Log (to be implemented)
+                _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
+                                    Constants.REGISTERIDENTITYROUTE, register.Username, ex.Message);
+
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                 new AuthResultDTO
                                 {
@@ -304,6 +343,9 @@ namespace IdentityWebApi.Controllers
                                     Result = false
                                 });
             }
+
+            _logger.LogInformation("Route: {method}, User: {username} |  User has been registered",
+                                   Constants.REGISTERIDENTITYROUTE, register.Username);
 
             return StatusCode(StatusCodes.Status201Created);
         }
