@@ -6,6 +6,7 @@ using IdentityWebApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Win32;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
@@ -243,7 +244,7 @@ namespace IdentityWebApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
-            //Check whether a user with given username exists
+            //Check whether a user with the given username exists
 
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
                                    Constants.REGISTERIDENTITYROUTE, register.Username);
@@ -260,11 +261,11 @@ namespace IdentityWebApi.Controllers
                 _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
 
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                new AuthResultDTO
-                                {
-                                    Error = "An internal error occurred",
-                                    Result = false
-                                });
+                                 new AuthResultDTO
+                                 {
+                                     Error = "An internal error occurred",
+                                     Result = false
+                                 });
             }
 
             if (current != null)
@@ -275,7 +276,7 @@ namespace IdentityWebApi.Controllers
                 return BadRequest("The given account could not be registered.");
             }
 
-            //If the user does not exist, add the user with given data to login
+            //If the user does not exist, add the user with the given data to Login
 
             _logger.LogInformation("Route: {method}, User: {username} |  Add the user to Login",
                                    Constants.REGISTERIDENTITYROUTE, register.Username);
@@ -355,26 +356,54 @@ namespace IdentityWebApi.Controllers
         /// </summary>
         /// <returns> 
         /// A ObjectResult whether the user exists (Status OK),
-        /// username was not found or data is invalid (Status Bad Request)
+        /// username was not found or data is invalid (Status Bad Request),
+        /// or an internal error occurred (Status InternalServerError)
         /// </returns>
         [HttpPost]
         [Route("search-identity")]
         [SwaggerOperation("Validate if the username and email exists")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO userDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
-            // Check whether a user with the username exists
-            var username = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
-                                               .FirstOrDefaultAsync();
-            var email = await _context.Users.Where(user => user.EmailAddress.Equals(userDTO.EmailAddress))
-                                               .FirstOrDefaultAsync();
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
+                                   Constants.SEARCHIDENTITYROUTE, userDTO.Username);
 
-            if (username == null || email == null)
-                return BadRequest("Invalid username and/or email");
+            // Check whether a user with the username exists
+
+            try
+            { 
+                var username = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
+                                                    .FirstOrDefaultAsync();
+                var email = await _context.Users.Where(user => user.EmailAddress.Equals(userDTO.EmailAddress))
+                                                .FirstOrDefaultAsync();
+
+                if (username == null || email == null)
+                {
+                    _logger.LogError("Route: {method}, User: {username} | Invalid username and/or email",
+                                     Constants.SEARCHIDENTITYROUTE, userDTO.Username);
+
+                    return BadRequest("Invalid username and/or email");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                new AuthResultDTO
+                                {
+                                    Error = "An internal error occurred",
+                                    Result = false
+                                });
+            }
+
+            _logger.LogInformation("Route: {method}, User: {username} |  User exists",
+                                  Constants.SEARCHIDENTITYROUTE, userDTO.Username);
 
             return Ok(new AuthResultDTO { Result = true });
         }
