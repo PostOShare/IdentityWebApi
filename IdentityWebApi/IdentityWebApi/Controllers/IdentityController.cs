@@ -412,25 +412,49 @@ namespace IdentityWebApi.Controllers
         /// Generates an OTP, saves the OTP to DB and sends the OTP to the user's email
         /// </summary>
         /// <returns> 
-        /// A ObjectResult whether the OTP was created (Status Created),
+        /// A ObjectResult whether the OTP was sent (Status Created),
         /// username was not found or data is invalid (Status Bad Request)
         /// or email was not sent (Status Internal Server Error)
         /// </returns>
         [HttpPost]
         [Route("verify-identity")]
-        [SwaggerOperation("Check email and send OTP")]
+        [SwaggerOperation("Check username and send OTP")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> SendVerification([FromBody] UpdateRequestDTO userDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
-            var user = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
-                                                  .FirstOrDefaultAsync();
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
+                                   Constants.VERIFYIDENTITYROUTE, userDTO.Username);
 
-            if(user == null)
+            Otpvalidate? user = null;
+            try
+            {
+                user = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
+                                                  .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = "An internal error occurred",
+                                      Result = false
+                                  });
+            }
+
+            if (user == null)
+            {
+                _logger.LogError("Route: {method}, User: {username} | Invalid username",
+                                 Constants.VERIFYIDENTITYROUTE, userDTO.Username);
+
                 return BadRequest("Invalid username");
+            }
 
             var otpModel = new OTPModel();
             var otp = otpModel.CreateOTP();
@@ -439,7 +463,7 @@ namespace IdentityWebApi.Controllers
             {
                 Username = userDTO.Username,
                 Otp = otp,
-                RequestedTime = DateTime.Now,
+                RequestedTime = DateTime.UtcNow,
                 RetryAttempt = 0
             };
 
@@ -450,7 +474,8 @@ namespace IdentityWebApi.Controllers
             }
             catch (DbUpdateException ex)
             {
-                // Log exception to Cloud Log (to be implemented)
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                  new AuthResultDTO
                                  {
@@ -459,13 +484,27 @@ namespace IdentityWebApi.Controllers
                                  });
             }
 
-            var subject = "PostOShare OTP";
             var body = otpModel.Body(otp);
 
-            var sent = await _mailService.SendMail(userDTO.EmailAddress, subject, body);
+            _logger.LogInformation("Route: {method}, User: {username} | Sending OTP to email",
+                                   Constants.VERIFYIDENTITYROUTE, userDTO.Username);
 
-            var code = sent ? StatusCodes.Status201Created : StatusCodes.Status500InternalServerError;
-            return StatusCode(code);
+            var sent = await _mailService.SendMail(userDTO.EmailAddress, Constants.SUBJECT, body);
+
+            if (sent)
+            {
+                _logger.LogInformation("Route: {method}, User: {username} | OTP was sent",
+                                       Constants.VERIFYIDENTITYROUTE, userDTO.Username);
+
+                return StatusCode(StatusCodes.Status201Created);
+            }
+            else
+            {
+                _logger.LogInformation("Route: {method}, User: {username} | A server error occurred",
+                                       Constants.VERIFYIDENTITYROUTE, userDTO.Username);
+
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
         }
 
         /// <summary> 
