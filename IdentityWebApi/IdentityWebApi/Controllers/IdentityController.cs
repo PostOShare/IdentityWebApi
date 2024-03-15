@@ -6,7 +6,6 @@ using IdentityWebApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Win32;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
@@ -520,25 +519,58 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Checks whether OTP response is correct")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO userDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
-            var exist = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
+                                   Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
+
+            Otpvalidate? exist = null;
+            try
+            {
+                exist = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
                                                    .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = "An internal error occurred",
+                                      Result = false
+                                  });
+            }
 
             if (exist == null)
+            {
+                _logger.LogError("Route: {method}, User: {username} | Invalid username",
+                                 Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
+
                 return BadRequest("Invalid username");
+            }
 
             if (exist.Otp == userDTO.Otp)
             {
+                _logger.LogInformation("Route: {method}, User: {username} | OTP entered is valid",
+                                       Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
+
                 return StatusCode(StatusCodes.Status200OK);
             }
             else
             {
+                _logger.LogInformation("Route: {method}, User: {username} | OTP entered is invalid",
+                                       Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
+
                 if (exist.RetryAttempt < 4)
                 {
+                    _logger.LogInformation("Route: {method}, User: {username} | Updating the request attempt",
+                                           Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
+
                     exist.RetryAttempt++;
 
                     try
@@ -548,19 +580,23 @@ namespace IdentityWebApi.Controllers
                     }
                     catch (DbUpdateException ex)
                     {
-                        // Log exception to Cloud Log (to be implemented)
+                        _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
                         return StatusCode(StatusCodes.Status500InternalServerError,
-                                         new AuthResultDTO
-                                         {
-                                             Error = "An error occurred when validating the OTP",
-                                             Result = false
-                                         });
+                                          new AuthResultDTO
+                                          {
+                                              Error = "An error occurred when updating the request attempt",
+                                              Result = false
+                                          });
                     }
 
                     return BadRequest("Invalid OTP");
                 }
                 else
                 {
+                    _logger.LogInformation("Route: {method}, User: {username} | Maximum attempts have been attempted",
+                                           Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
+
                     return StatusCode(StatusCodes.Status500InternalServerError,
                                       new AuthResultDTO
                                       {
@@ -572,11 +608,11 @@ namespace IdentityWebApi.Controllers
         }
 
         /// <summary> 
-        /// Checks the username and updates the Key and Salt
+        /// Checks the username and updates the Key and Salt for the username
         /// </summary>
         /// <returns> 
         /// A ObjectResult whether the Key and Salt were updated (Status OK), 
-        /// Not updated (Status Not Modified) or
+        /// Not updated (Status Internal Server Error) or
         /// data is invalid (Status Bad Request)
         /// </returns>
         [HttpPatch]
@@ -584,17 +620,45 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Updates key and salt based on password sent in request for a username")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO userDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
             // Check whether a user with the username and password exists
-            var current = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
+
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
+                                   Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
+
+            Login? current = null;
+            try
+            {
+                current = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
                                                .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = "An internal error occurred",
+                                      Result = false
+                                  });
+            }
 
             if (current == null)
+            {
+                _logger.LogError("Route: {method}, User: {username} | Invalid username",
+                                 Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
+
                 return BadRequest("Invalid username");
+            }
+
+            _logger.LogInformation("Route: {method}, User: {username} | Updating Key and Salt",
+                                   Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
 
             using (var deriveBytes = new Rfc2898DeriveBytes(userDTO.Password, 20))
             {
@@ -608,15 +672,19 @@ namespace IdentityWebApi.Controllers
                 }
                 catch (DbUpdateException ex)
                 {
-                    // Log exception to Cloud Log (to be implemented)
-                    return StatusCode(StatusCodes.Status304NotModified,
-                                    new AuthResultDTO
-                                    {
-                                        Error = "An error occurred when updating password",
-                                        Result = false
-                                    });
+                    _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                                      new AuthResultDTO
+                                      {
+                                          Error = "An error occurred when updating password",
+                                          Result = false
+                                      });
                 }
             }
+
+            _logger.LogInformation("Route: {method}, User: {username} | Key and Salt were updated",
+                                   Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
 
             return Ok(new AuthResultDTO { Result = true });
         }

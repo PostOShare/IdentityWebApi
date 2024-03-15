@@ -7,5 +7,7 @@
         public const string SEARCHIDENTITYROUTE = "search-identity";
         public const string VERIFYIDENTITYROUTE = "verify-identity";
         public const string SUBJECT = "PostOShare OTP";
+        public const string VALIDITYPASSCODEIDENTITYROUTE = "validate-passcode";
+        public const string CHANGECREDENTIALSIDENTITYROUTE = "change-credentials-identity";
     }
 }
