@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace EntityORM.DatabaseEntity;
+﻿namespace EntityORM.DatabaseEntity;
 
 public partial class UserAuth
 {
