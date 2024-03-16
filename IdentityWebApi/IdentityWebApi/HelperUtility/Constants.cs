@@ -9,5 +9,7 @@
         public const string SUBJECT = "PostOShare OTP";
         public const string VALIDITYPASSCODEIDENTITYROUTE = "validate-passcode";
         public const string CHANGECREDENTIALSIDENTITYROUTE = "change-credentials-identity";
+        public const string GENERATEACCESSTOKENIDENTITYROUTE = "generate-accessToken";
+        public const string VALIDATEACCESSTOKENIDENTITYROUTE = "validate-accessToken";
     }
 }

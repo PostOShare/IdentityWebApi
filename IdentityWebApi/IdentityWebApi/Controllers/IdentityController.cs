@@ -701,22 +701,50 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Creates an access token")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO request)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid || string.IsNullOrEmpty(request.RefreshToken))
                 return BadRequest("Invalid request");
 
-            var authUser = await _context.UserAuths.Where(user => user.Token.Equals(request.RefreshToken))
-                                                   .FirstOrDefaultAsync();
+            _logger.LogInformation("Route: {method}, Refresh token: {token} | Checking whether the refresh token exists",
+                                   Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
+
+            UserAuth? authUser = null;
+            try
+            {
+                authUser = await _context.UserAuths.Where(user => user.Token.Equals(request.RefreshToken))
+                                                       .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = "An internal error occurred",
+                                      Result = false
+                                  });
+            }
 
             if (authUser == null)
+            {
+                _logger.LogError("Route: {method}, Refresh token: {token} | Invalid refresh token",
+                                 Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
+
                 return BadRequest("Invalid request");
+            }
+                
 
             var refresh = authUser.Token;
 
             // if the refresh token's created time is more than 1 day it is expired
-            if (authUser.CreatedTime.AddDays(1) > DateTime.Now)
+            if (authUser.CreatedTime.AddDays(1) > DateTime.UtcNow)
             {
+                _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating refresh token",
+                                  Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
+
                 refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
                 authUser.CreatedTime = DateTime.Now;
 
@@ -727,12 +755,19 @@ namespace IdentityWebApi.Controllers
                 }
                 catch (DbUpdateException ex)
                 {
-                    // Log exception to Cloud Log (to be implemented)
+                    _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+
                     return StatusCode(StatusCodes.Status500InternalServerError);
                 }
             }
 
+            _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating access token",
+                                  Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
+
             var access = new JWTTokenGenerationHelper().GenerateJWTToken(authUser.Username);
+
+            _logger.LogInformation("Route: {method}, Refresh token: {token} | Token(s) were created",
+                                  Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
 
             return StatusCode(StatusCodes.Status201Created,
                               new AuthResultDTO
@@ -756,30 +791,60 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public ActionResult ValidateAccessToken([FromBody] CreateTokenRequestDTO request)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid || string.IsNullOrEmpty(request.AccessToken))
                 return BadRequest("Invalid request");
+
+            _logger.LogInformation("Route: {method}, Access token: {token} | Validating the access token",
+                                   Constants.VALIDATEACCESSTOKENIDENTITYROUTE, request.AccessToken);
 
             var handler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes("dkfgnkdfhfghfghjhjkhdfgdbnmbnsdfsdfhjkhjkssdfsgjgjhbnvbnhgjghjdgdfg");
 
-            handler.ValidateToken(request.AccessToken, new TokenValidationParameters()
+            JwtSecurityToken? token = null;
+            try
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                RequireExpirationTime = false,
-                ValidateLifetime = false
-            },out var validateToken);
+                handler.ValidateToken(request.AccessToken, new TokenValidationParameters()
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    RequireExpirationTime = false,
+                    ValidateLifetime = false
+                }, out var validateToken);
 
-            var token = (JwtSecurityToken)validateToken;
+                token = (JwtSecurityToken)validateToken;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("The token is invalid or unknown exception: {exception}", ex.Message);
+
+                return StatusCode(StatusCodes.Status400BadRequest,
+                                  new AuthResultDTO
+                                  {
+                                      Error = "The token is invalid",
+                                      Result = false
+                                  });
+            }
+
+            
             var expiry = Convert.ToInt64(token.Claims.Where(p => p.Type == "exp").FirstOrDefault()?.Value);
             var expired = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() > expiry;
 
             if (expired)
+            {
+                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is valid",
+                                   Constants.VALIDATEACCESSTOKENIDENTITYROUTE, request.AccessToken);
+
                 return BadRequest("Token is expired.");
+            }               
             else
-                return Ok();            
+            {
+                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is expired",
+                                   Constants.VALIDATEACCESSTOKENIDENTITYROUTE, request.AccessToken);
+
+                return Ok();
+            }                          
         }
     }
 }
