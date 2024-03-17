@@ -41,7 +41,7 @@ The API and the SQL Server instance need to be published to a cloud provider to 
 
 # Deployment
 
-The architecture of the deployment of the API and the SQL Server instance in AWS is illustrated below:
+The API and the SQL Server instance deployment architecture in AWS is illustrated below:
 
 ![Architecture of API deployment](https://github.com/PostOShare/IdentityWebApi/assets/17848426/576dbbbd-b03b-4190-8e3c-0345017da049)
 
@@ -49,20 +49,22 @@ The architecture of the deployment of the API and the SQL Server instance in AWS
 
 ## Production dependencies
 
--  Amazon.Lambda.AspNetCoreServer                       | Version 7.2.0 
--  Amazon.Lambda.AspNetCoreServer.Hosting               | Version 1.3.1 
--  MailKit                                              | Version 4.3.0 
--  Microsoft.AspNetCore.Authentication.JwtBearer        | Version 6.0.26 
--  Microsoft.AspNetCore.Identity.EntityFrameworkCore    | Version 6.0.26 
--  Microsoft.AspNetCore.Identity.UI                     | Version 6.0.26 
--  Microsoft.EntityFrameworkCore.SqlServer              | Version 6.0.26 
--  Microsoft.EntityFrameworkCore.Tools                  | Version 6.0.26
+-  Amazon.Lambda.AspNetCoreServer
+-  Amazon.Lambda.AspNetCoreServer.Hosting
+-  AWS.Logger.AspNetCore
+-  MailKit
+-  Microsoft.AspNetCore.Authentication.JwtBearer
+-  Microsoft.AspNetCore.Identity.EntityFrameworkCore
+-  Microsoft.AspNetCore.Identity.UI
+-  Microsoft.EntityFrameworkCore.SqlServer
+-  Microsoft.EntityFrameworkCore.Tools
 
 ## Development dependencies
 
 These dependencies are used only in development:
-- Swashbuckle.AspNetCore                                | Version 6.5.0
-- Swashbuckle.AspNetCore.Annotations                    | Version 6.5.0
+
+- Swashbuckle.AspNetCore
+- Swashbuckle.AspNetCore.Annotations
 
 # Endpoints of the API
 
@@ -322,28 +324,38 @@ curl -X 'PATCH' \
 
 - 200 - Key and Salt for the user were updated
 
-```json
-{
-  "refreshToken": "",
-  "accessToken": "",
-  "result": true,
-  "error": ""
-}
-```
-
-- 304 - Key and Salt for the user were not updated
-
-```json
-{
-  "refreshToken": "",
-  "accessToken": "",
-  "result": false,
-  "error": "An error occurred when updating password"
-}
-```
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": true,
+    "error": ""
+  }
+  ```
 
 - 400 - Invalid request, Invalid username
+- 500 - An internal error occurred 
 
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An internal error occurred"
+  }
+  ```
+
+  500 - An error occurred when updating password
+  
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An error occurred when updating password"
+  }
+  ```
+  
 ## api/v1/auth/generate-accessToken
 
 This endpoint is used to create an access token based on the user's refresh token. Please note that the access token is not validated, but should be passed when making a request.
@@ -377,7 +389,16 @@ curl -X 'POST' \
   ```
 
 - 400 - Invalid request
-- 500 - InternalServerError
+- 500 - An internal error occurred 
+
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An internal error occurred"
+  }
+  ```
 
 ## api/v1/auth/validate-accessToken
 
@@ -400,3 +421,14 @@ curl -X 'POST' \
 
 - 200 - Access token is valid
 - 400 - Invalid request, Token is expired
+
+  400 - The token is invalid
+
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "The token is invalid"
+  }
+  ```
