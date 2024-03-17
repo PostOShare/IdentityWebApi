@@ -53,7 +53,7 @@ namespace IdentityWebApi.Controllers
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
                                    Constants.LOGINIDENTITYROUTE, login.Username);
 
-            // Check whether a user with the username and password exists
+            // Check whether a user exists
 
             Login? current = null;
 
@@ -394,11 +394,11 @@ namespace IdentityWebApi.Controllers
                 _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
 
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                new AuthResultDTO
-                                {
-                                    Error = "An internal error occurred",
-                                    Result = false
-                                });
+                                 new AuthResultDTO
+                                 {
+                                     Error = "An internal error occurred",
+                                     Result = false
+                                 });
             }
 
             _logger.LogInformation("Route: {method}, User: {username} |  User exists",
@@ -478,7 +478,7 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                  new AuthResultDTO
                                  {
-                                     Error = "An error occurred when adding user",
+                                     Error = "An internal error occurred",
                                      Result = false
                                  });
             }
@@ -626,7 +626,7 @@ namespace IdentityWebApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest("Invalid request");
 
-            // Check whether a user with the username and password exists
+            // Check whether a user exists
 
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
                                    Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
@@ -757,7 +757,12 @@ namespace IdentityWebApi.Controllers
                 {
                     _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
 
-                    return StatusCode(StatusCodes.Status500InternalServerError);
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                                      new AuthResultDTO
+                                      {
+                                          Error = "An internal error occurred",
+                                          Result = false
+                                      });
                 }
             }
 
