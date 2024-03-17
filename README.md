@@ -141,7 +141,7 @@ curl -X 'POST' \
 
 - 201 - User created
 - 400 - Invalid request, The given account could not be registered (User exists)
-- 500 - An error occurred when adding user
+- 500 - An error occurred when adding user 
 
   ```json
   {
@@ -149,6 +149,17 @@ curl -X 'POST' \
     "accessToken": "",
     "result": false,
     "error": "An error occurred when adding user"
+  }
+  ```
+
+  500 - An internal error occurred
+  
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An internal error occurred"
   }
   ```
 
@@ -185,6 +196,16 @@ curl -X 'POST' \
   ```
 
 - 400 - Invalid username and/or email (User does not exist), Invalid request
+- 500 - An internal error occurred
+
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An internal error occurred"
+  }
+  ```
 
 ## api/v1/auth/verify-identity
 
@@ -209,8 +230,19 @@ curl -X 'POST' \
 
 - 201 - Created
 - 400 - Invalid username (User does not exist), Invalid request
-- 500 - An error occurred when adding user, InternalServerError (Error when sending email)
+- 500 - An internal error occurred 
 
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An internal error occurred"
+  }
+  ```
+
+  500 - InternalServerError (Error when sending email)
+  
 ## api/v1/auth/validate-passcode-identity
 
 This endpoint is used to check if the OTP response sent when validating a user is valid. Please note that the values for Email and Password fields are not validated, but should be passed when making a request.
@@ -234,18 +266,7 @@ curl -X 'POST' \
 
 - 200 - OTP is valid
 - 400 - Invalid username, Invalid OTP, Invalid request
-- 500 - An error occurred when validating the OTP
-
-  ```json
-  {
-    "refreshToken": "",
-    "accessToken": "",
-    "result": false,
-    "error": "An error occurred when validating the OTP"
-  }
-  ```
-
-  500 - Cannot try more than maximum attempts
+- 500 - Cannot try more than maximum attempts
 
   ```json
   {
@@ -253,6 +274,28 @@ curl -X 'POST' \
     "accessToken": "",
     "result": false,
     "error": "Cannot try more than maximum attempts"
+  }
+  ```
+
+  500 - An internal error occurred 
+
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An internal error occurred"
+  }
+  ```
+
+  500 - An error occurred when updating the request attempt
+
+  ```json
+  {
+    "refreshToken": "",
+    "accessToken": "",
+    "result": false,
+    "error": "An error occurred when updating the request attempt"
   }
   ```
 
