@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace IdentityWebApi.Models.DTO
+namespace IdentityWebApi.Models.DTO.Request
 {
     public class UpdateRequestDTO
     {
@@ -8,7 +8,7 @@ namespace IdentityWebApi.Models.DTO
         public string Username { get; set; } = string.Empty;
 
         [Required]
-        public string EmailAddress { get; set; } = string.Empty;
+        public string EmailRepositoryAddress { get; set; } = string.Empty;
 
         [Required]
         public decimal Otp { get; set; } = 000000;
