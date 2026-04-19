@@ -1,18 +1,12 @@
 ﻿using EntityORM.DatabaseEntity;
-using IdentityWebApi.HelperUtility;
-using IdentityWebApi.Models;
-using IdentityWebApi.Models.DTO.Request;
-using IdentityWebApi.Models.DTO.Response;
 using IdentityWebApi.Repositories;
-using Microsoft.AspNetCore.Mvc;
+using IdentityWebApiCommon.HelperUtility;
+using IdentityWebApiCommon.Models;
+using IdentityWebApiCommon.Models.DTO.Request;
+using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Swashbuckle.AspNetCore.Annotations;
-using System.ComponentModel.DataAnnotations;
-using System.IdentityModel.Tokens.Jwt;
-using System.Net;
+using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace IdentityWebApi.Services
 {
@@ -186,7 +180,7 @@ namespace IdentityWebApi.Services
             };
         }
 
-        public async Task<RegisterResponseDTO> Register(RegisterRequestDTO register)
+        public async Task<BaseResponseDTO> Register(RegisterRequestDTO register)
         {
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
                                    Constants.REGISTERIDENTITYROUTE, register.Username);
@@ -209,7 +203,7 @@ namespace IdentityWebApi.Services
                 _logger.LogInformation("Route: {method}, User: {username} | User exists",
                                        Constants.REGISTERIDENTITYROUTE, register.Username);
 
-                return new RegisterResponseDTO { Error = "The given account could not be registered." , Result = false};
+                return new BaseResponseDTO { Error = "The given account could not be registered." , Result = false};
             }
 
             //If the user does not exist, add the user with the given data to Login
@@ -272,7 +266,107 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} |  User has been registered",
                                    Constants.REGISTERIDENTITYROUTE, register.Username);
 
-            return new RegisterResponseDTO { Error = string.Empty, Result = true };
+            return new BaseResponseDTO { Error = string.Empty, Result = true };
+        }
+
+        public async Task<BaseResponseDTO> UserData(UpdateRequestDTO userDTO)
+        {
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
+                                   Constants.SEARCHIDENTITYROUTE, userDTO.Username);
+
+            // Check whether a user with the username exists
+            try
+            {
+                var username = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
+                                                    .FirstOrDefaultAsync();
+                var email = await _context.Users.Where(user => user.EmailAddress.Equals(userDTO.EmailAddress))
+                                                .FirstOrDefaultAsync();
+
+                if (username == null || email == null)
+                {
+                    _logger.LogError("Route: {method}, User: {username} | Invalid username and/or email",
+                                     Constants.SEARCHIDENTITYROUTE, userDTO.Username);
+
+                    return new BaseResponseDTO { Error = Constants.USERVALIDATIONERROR, Result = false };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                throw;
+            }
+
+            _logger.LogInformation("Route: {method}, User: {username} |  User exists",
+                                  Constants.SEARCHIDENTITYROUTE, userDTO.Username);
+
+            return new BaseResponseDTO { Error = string.Empty, Result = true };
+        }
+
+        public async Task<BaseResponseDTO> SendVerification(UpdateRequestDTO userDTO)
+        {
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
+                                   Constants.VERIFYIDENTITYROUTE, userDTO.Username);
+
+            Otpvalidate? user = null;
+            try
+            {
+                user = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
+                                                  .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                throw;
+            }
+
+            if (user == null)
+            {
+                _logger.LogError("Route: {method}, User: {username} | Invalid username",
+                                 Constants.VERIFYIDENTITYROUTE, userDTO.Username);
+                return new BaseResponseDTO { Error = Constants.USERVALIDATIONERROR, Result = false };
+            }
+
+            var otpModel = new OTPModel();
+            var otp = otpModel.CreateOTP();
+
+            var otpvalidate = new Otpvalidate
+            {
+                Username = userDTO.Username,
+                Otp = otp,
+                RequestedTime = DateTime.UtcNow,
+                RetryAttempt = 0
+            };
+
+            try
+            {
+                _context.Otpvalidates.Add(otpvalidate);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                throw;
+            }
+
+            var body = otpModel.Body(otp);
+
+            _logger.LogInformation("Route: {method}, User: {username} | Sending OTP to email",
+                                   Constants.VERIFYIDENTITYROUTE, userDTO.Username);
+
+            var sent = await _mailService.SendMail(userDTO.EmailAddress, Constants.SUBJECT, body);
+
+            if (sent)
+            {
+                _logger.LogInformation("Route: {method}, User: {username} | OTP was sent",
+                                       Constants.VERIFYIDENTITYROUTE, userDTO.Username);
+                return new BaseResponseDTO { Error = string.Empty, Result = true };
+            }
+            else
+            {
+                _logger.LogInformation("Route: {method}, User: {username} | A server error occurred",
+                                       Constants.VERIFYIDENTITYROUTE, userDTO.Username);
+                throw new Exception("An internal error occurred while sending OTP");
+            }
         }
     }
 }

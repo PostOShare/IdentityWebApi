@@ -1,4 +1,4 @@
-﻿namespace IdentityWebApi.Models.DTO.Response
+﻿namespace IdentityWebApiCommon.Models.DTO.Response
 {
     public class AuthResultDTO
     {

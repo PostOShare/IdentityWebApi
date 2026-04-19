@@ -1,7 +1,7 @@
-﻿using IdentityWebApi.Models;
+﻿using IdentityWebApiCommon.Models;
 using System.Security.Cryptography;
 
-namespace IdentityWebApi.HelperUtility
+namespace IdentityWebApiCommon.HelperUtility
 {
     public class RefreshTokenGenerationHelper
     {

@@ -1,4 +1,4 @@
-﻿namespace IdentityWebApi.HelperUtility
+﻿namespace IdentityWebApiCommon.HelperUtility
 {
     public class Constants
     {
