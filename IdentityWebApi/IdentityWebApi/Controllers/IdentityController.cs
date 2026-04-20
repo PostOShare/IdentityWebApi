@@ -1,18 +1,11 @@
-﻿using EntityORM.DatabaseEntity;
-using IdentityWebApi.HelperUtility;
-using IdentityWebApi.Models;
-using IdentityWebApi.Models.DTO.Request;
-using IdentityWebApi.Models.DTO.Response;
-using IdentityWebApi.Services;
+﻿using IdentityWebApi.Services;
+using IdentityWebApiCommon.HelperUtility;
+using IdentityWebApiCommon.Models.DTO.Request;
+using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace IdentityWebApi.Controllers
 {
@@ -21,10 +14,12 @@ namespace IdentityWebApi.Controllers
     public class IdentityController : ControllerBase
     {
         public IIdentityService _identityService;
+        public IConfiguration _configuration;
 
-        public IdentityController(IIdentityService identityService)
+        public IdentityController(IIdentityService identityService, IConfiguration configuration)
         {
             _identityService = identityService;
+            _configuration = configuration;
         }
 
 
@@ -42,14 +37,14 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO loginRequest)
+        public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO loginRequestDTO)
         {
             try
             {
-                var response = _identityService.Login(loginRequest);
+                var response = await _identityService.Login(loginRequestDTO);
 
-                if(response.Result.Error.Equals(Constants.USERVALIDATIONERROR))
-                    return BadRequest(Constants.USERVALIDATIONERROR);
+                if(response.Error.Equals(Constants.UserValidationError))
+                    return BadRequest(Constants.UserValidationError);
                 else
                     return Ok(response);
             }
@@ -78,14 +73,14 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequest)
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequestDTO)
         {
             try
             {
-                var response = _identityService.Register(registerRequest);
+                var response = await _identityService.Register(registerRequestDTO);
 
-                if (!response.Result.Result)
-                    return BadRequest(Constants.USEREXISTSERROR);
+                if (!response.Result)
+                    return BadRequest(Constants.UserExistsError);
                 else
                     return StatusCode(StatusCodes.Status201Created);
             }
@@ -100,7 +95,7 @@ namespace IdentityWebApi.Controllers
             }
         }
 
-        /*
+        
         /// <summary> 
         /// Checks whether a username and email address exists
         /// </summary>
@@ -115,48 +110,28 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO userDTO)
+        public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO updateRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
-
-            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
-                                   Constants.SEARCHIDENTITYROUTE, userDTO.Username);
-
-            // Check whether a user with the username exists
-
             try
-            { 
-                var username = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
-                                                    .FirstOrDefaultAsync();
-                var email = await _context.Users.Where(user => user.EmailRepositoryAddress.Equals(userDTO.EmailRepositoryAddress))
-                                                .FirstOrDefaultAsync();
+            {
+                var response = await _identityService.UserData(updateRequestDTO);
 
-                if (username == null || email == null)
-                {
-                    _logger.LogError("Route: {method}, User: {username} | Invalid username and/or email",
-                                     Constants.SEARCHIDENTITYROUTE, userDTO.Username);
-
-                    return BadRequest("Invalid username and/or email");
-                }
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return Ok(new AuthResultDTO { Result = true });
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                 new AuthResultDTO
-                                 {
-                                     Error = "An internal error occurred",
-                                     Result = false
-                                 });
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
             }
-
-            _logger.LogInformation("Route: {method}, User: {username} |  User exists",
-                                  Constants.SEARCHIDENTITYROUTE, userDTO.Username);
-
-            return Ok(new AuthResultDTO { Result = true });
         }
+
 
         /// <summary> 
         /// Generates an OTP, saves the OTP to DB and sends the OTP to the user's email
@@ -172,90 +147,28 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> SendVerification([FromBody] UpdateRequestDTO userDTO)
+        public async Task<IActionResult> SendVerification([FromBody] UpdateRequestDTO updateRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
-
-            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
-                                   Constants.VERIFYIDENTITYROUTE, userDTO.Username);
-
-            Otpvalidate? user = null;
             try
             {
-                user = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
-                                                  .FirstOrDefaultAsync();
+                var response = await _identityService.SendVerification(updateRequestDTO);
+
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return StatusCode(StatusCodes.Status201Created);
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = "An internal error occurred",
+                                      Error = ex.Message,
                                       Result = false
                                   });
             }
-
-            if (user == null)
-            {
-                _logger.LogError("Route: {method}, User: {username} | Invalid username",
-                                 Constants.VERIFYIDENTITYROUTE, userDTO.Username);
-
-                return BadRequest("Invalid username");
-            }
-
-            var otpModel = new OTPModel();
-            var otp = otpModel.CreateOTP();
-
-            var otpvalidate = new Otpvalidate
-            {
-                Username = userDTO.Username,
-                Otp = otp,
-                RequestedTime = DateTime.UtcNow,
-                RetryAttempt = 0
-            };
-
-            try
-            {
-                _context.Otpvalidates.Add(otpvalidate);
-                _context.SaveChanges();
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                                 new AuthResultDTO
-                                 {
-                                     Error = "An internal error occurred",
-                                     Result = false
-                                 });
-            }
-
-            var body = otpModel.Body(otp);
-
-            _logger.LogInformation("Route: {method}, User: {username} | Sending OTP to email",
-                                   Constants.VERIFYIDENTITYROUTE, userDTO.Username);
-
-            var sent = await _mailService.SendMail(userDTO.EmailRepositoryAddress, Constants.SUBJECT, body);
-
-            if (sent)
-            {
-                _logger.LogInformation("Route: {method}, User: {username} | OTP was sent",
-                                       Constants.VERIFYIDENTITYROUTE, userDTO.Username);
-
-                return StatusCode(StatusCodes.Status201Created);
-            }
-            else
-            {
-                _logger.LogInformation("Route: {method}, User: {username} | A server error occurred",
-                                       Constants.VERIFYIDENTITYROUTE, userDTO.Username);
-
-                return StatusCode(StatusCodes.Status500InternalServerError);
-            }
         }
+
 
         /// <summary> 
         /// Checks if the OTP response from the input is valid
@@ -271,90 +184,25 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO userDTO)
+        public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO updateRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
-
-            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
-                                   Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
-
-            Otpvalidate? exist = null;
             try
             {
-                exist = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
-                                                   .FirstOrDefaultAsync();
+                var response = await _identityService.ValidatePasscode(updateRequestDTO);
+
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return Ok(new AuthResultDTO { Result = true });
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = "An internal error occurred",
+                                      Error = ex.Message,
                                       Result = false
                                   });
-            }
-
-            if (exist == null)
-            {
-                _logger.LogError("Route: {method}, User: {username} | Invalid username",
-                                 Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
-
-                return BadRequest("Invalid username");
-            }
-
-            if (exist.Otp == userDTO.Otp)
-            {
-                _logger.LogInformation("Route: {method}, User: {username} | OTP entered is valid",
-                                       Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
-
-                return StatusCode(StatusCodes.Status200OK);
-            }
-            else
-            {
-                _logger.LogInformation("Route: {method}, User: {username} | OTP entered is invalid",
-                                       Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
-
-                if (exist.RetryAttempt < 4)
-                {
-                    _logger.LogInformation("Route: {method}, User: {username} | Updating the request attempt",
-                                           Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
-
-                    exist.RetryAttempt++;
-
-                    try
-                    {
-                        _context.Otpvalidates.Update(exist);
-                        _context.SaveChanges();
-                    }
-                    catch (DbUpdateException ex)
-                    {
-                        _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
-                        return StatusCode(StatusCodes.Status500InternalServerError,
-                                          new AuthResultDTO
-                                          {
-                                              Error = "An error occurred when updating the request attempt",
-                                              Result = false
-                                          });
-                    }
-
-                    return BadRequest("Invalid OTP");
-                }
-                else
-                {
-                    _logger.LogInformation("Route: {method}, User: {username} | Maximum attempts have been attempted",
-                                           Constants.VALIDITYPASSCODEIDENTITYROUTE, userDTO.Username);
-
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                                      new AuthResultDTO
-                                      {
-                                          Error = "Cannot try more than maximum attempts",
-                                          Result = false
-                                      });
-                }
             }
         }
 
@@ -372,72 +220,26 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO userDTO)
+        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO updateRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
-
-            // Check whether a user exists
-
-            _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
-                                   Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
-
-            Login? current = null;
             try
             {
-                current = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
-                                               .FirstOrDefaultAsync();
+                var response = await _identityService.UpdateKeySalt(updateRequestDTO);
+
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return Ok(new AuthResultDTO { Result = true });
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = "An internal error occurred",
+                                      Error = ex.Message,
                                       Result = false
                                   });
             }
-
-            if (current == null)
-            {
-                _logger.LogError("Route: {method}, User: {username} | Invalid username",
-                                 Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
-
-                return BadRequest("Invalid username");
-            }
-
-            _logger.LogInformation("Route: {method}, User: {username} | Updating Key and Salt",
-                                   Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
-
-            using (var deriveBytes = new Rfc2898DeriveBytes(userDTO.Password, 20))
-            {
-                current.Salt = Convert.ToBase64String(deriveBytes.Salt);
-                current.Key = Convert.ToBase64String(deriveBytes.GetBytes(20));
-
-                try
-                {
-                    _context.Update(current);
-                    _context.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                                      new AuthResultDTO
-                                      {
-                                          Error = "An error occurred when updating password",
-                                          Result = false
-                                      });
-                }
-            }
-
-            _logger.LogInformation("Route: {method}, User: {username} | Key and Salt were updated",
-                                   Constants.CHANGECREDENTIALSIDENTITYROUTE, userDTO.Username);
-
-            return Ok(new AuthResultDTO { Result = true });
         }
 
         /// <summary> Creates an access token based on the user's refresh token
@@ -453,85 +255,35 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO request)
+        public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
         {
-            if (!ModelState.IsValid || string.IsNullOrEmpty(request.RefreshToken))
-                return BadRequest("Invalid request");
+            if (string.IsNullOrEmpty(createTokenRequestDTO.RefreshToken))
+                return BadRequest(Constants.InvalidRefreshTokenError);
 
-            _logger.LogInformation("Route: {method}, Refresh token: {token} | Checking whether the refresh token exists",
-                                   Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
-
-            UserAuth? authUser = null;
             try
             {
-                authUser = await _context.UserAuths.Where(user => user.Token.Equals(request.RefreshToken))
-                                                       .FirstOrDefaultAsync();
+                var response = await _identityService.GenerateAccessToken(createTokenRequestDTO);
+
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return StatusCode(StatusCodes.Status201Created,
+                              new AuthResultDTO
+                              {
+                                  RefreshToken = response.RefreshToken,
+                                  AccessToken = response.AccessToken,
+                                  Result = true
+                              });
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = "An internal error occurred",
+                                      Error = ex.Message,
                                       Result = false
                                   });
             }
-
-            if (authUser == null)
-            {
-                _logger.LogError("Route: {method}, Refresh token: {token} | Invalid refresh token",
-                                 Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
-
-                return BadRequest("Invalid request");
-            }
-                
-
-            var refresh = authUser.Token;
-
-            // if the refresh token's created time is more than 1 day it is expired
-            if (authUser.CreatedTime.AddDays(1) > DateTime.UtcNow)
-            {
-                _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating refresh token",
-                                  Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
-
-                refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
-                authUser.CreatedTime = DateTime.Now;
-
-                try
-                {
-                    _context.UserAuths.Update(authUser);
-                    _context.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                                      new AuthResultDTO
-                                      {
-                                          Error = "An internal error occurred",
-                                          Result = false
-                                      });
-                }
-            }
-
-            _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating access token",
-                                  Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
-
-            var access = new JWTTokenGenerationHelper().GenerateJWTToken(authUser.Username);
-
-            _logger.LogInformation("Route: {method}, Refresh token: {token} | Token(s) were created",
-                                  Constants.GENERATEACCESSTOKENIDENTITYROUTE, request.RefreshToken);
-
-            return StatusCode(StatusCodes.Status201Created,
-                              new AuthResultDTO
-                              {
-                                  RefreshToken = refresh,
-                                  AccessToken = access,
-                                  Result = true
-                              });
         }
 
         /// <summary> Validates an access token
@@ -545,63 +297,36 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Validates an access token")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public ActionResult ValidateAccessToken([FromBody] CreateTokenRequestDTO request)
+        public async Task<IActionResult> ValidateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
         {
-            if (!ModelState.IsValid || string.IsNullOrEmpty(request.AccessToken))
-                return BadRequest("Invalid request");
+            if (string.IsNullOrEmpty(createTokenRequestDTO.AccessToken))
+                return BadRequest(Constants.InvalidAccessTokenError);
 
-            _logger.LogInformation("Route: {method}, Access token: {token} | Validating the access token",
-                                   Constants.VALIDATEACCESSTOKENIDENTITYROUTE, request.AccessToken);
-
-            var handler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("dkfgnkdfhfghfghjhjkhdfgdbnmbnsdfsdfhjkhjkssdfsgjgjhbnvbnhgjghjdgdfg");
-
-            JwtSecurityToken? token = null;
             try
             {
-                handler.ValidateToken(request.AccessToken, new TokenValidationParameters()
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    RequireExpirationTime = false,
-                    ValidateLifetime = false
-                }, out var validateToken);
+                var key = _configuration.GetSection(Constants.SecretKey).Value;
+                var response = await _identityService.ValidateAccessToken(createTokenRequestDTO, key!);
 
-                token = (JwtSecurityToken)validateToken;
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return StatusCode(StatusCodes.Status200OK,
+                              new AuthResultDTO
+                              {
+                                  RefreshToken = response.RefreshToken,
+                                  AccessToken = response.AccessToken,
+                                  Result = true
+                              });
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("The token is invalid or unknown exception: {exception}", ex.Message);
-
-                return StatusCode(StatusCodes.Status400BadRequest,
+                return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = "The token is invalid",
+                                      Error = ex.Message,
                                       Result = false
                                   });
             }
-
-            
-            var expiry = Convert.ToInt64(token.Claims.Where(p => p.Type == "exp").FirstOrDefault()?.Value);
-            var expired = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() > expiry;
-
-            if (expired)
-            {
-                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is valid",
-                                   Constants.VALIDATEACCESSTOKENIDENTITYROUTE, request.AccessToken);
-
-                return BadRequest("Token is expired.");
-            }               
-            else
-            {
-                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is expired",
-                                   Constants.VALIDATEACCESSTOKENIDENTITYROUTE, request.AccessToken);
-
-                return Ok();
-            }                          
         }
-        */
     }
 }

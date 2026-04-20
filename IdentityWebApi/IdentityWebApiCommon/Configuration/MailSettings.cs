@@ -1,4 +1,4 @@
-﻿namespace IdentityWebApi.Configuration
+﻿namespace IdentityWebApiCommon.Configuration
 {
     public class MailSettings
     {

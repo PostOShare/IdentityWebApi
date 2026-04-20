@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace IdentityWebApi.Exceptions
+namespace IdentityWebApi.ApiFilters
 {
     public class ValidateModelFilter : ActionFilterAttribute
     {

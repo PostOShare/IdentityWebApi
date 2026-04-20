@@ -1,4 +1,4 @@
-﻿using IdentityWebApi.Configuration;
+﻿using IdentityWebApiCommon.Configuration;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
 using MimeKit;

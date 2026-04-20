@@ -1,6 +1,6 @@
-﻿namespace IdentityWebApi.Models.DTO.Response
+﻿namespace IdentityWebApiCommon.Models.DTO.Response
 {
-    public class RegisterResponseDTO
+    public class BaseResponseDTO
     {
         public bool Result { get; set; }
 

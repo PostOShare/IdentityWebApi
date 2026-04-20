@@ -1,8 +1,8 @@
 using EntityORM.DatabaseEntity;
-using IdentityWebApi.Configuration;
-using IdentityWebApi.Exceptions;
+using IdentityWebApi.ApiFilters;
 using IdentityWebApi.Repositories;
 using IdentityWebApi.Services;
+using IdentityWebApiCommon.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
