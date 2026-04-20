@@ -7,7 +7,9 @@ namespace IdentityWebApi.Services
     {
         Task<AuthResultDTO> Login(LoginRequestDTO login);
         Task<BaseResponseDTO> Register(RegisterRequestDTO register);
-        Task<BaseResponseDTO> UserData(UpdateRequestDTO userDTO);
-        Task<BaseResponseDTO> SendVerification(UpdateRequestDTO userDTO);
+        Task<BaseResponseDTO> UserData(UpdateRequestDTO updateRequestDTO);
+        Task<BaseResponseDTO> SendVerification(UpdateRequestDTO updateRequestDTO);
+        Task<BaseResponseDTO> ValidatePasscode(UpdateRequestDTO updateRequestDTO);
+        Task<BaseResponseDTO> UpdateKeySalt(UpdateRequestDTO updateRequestDTO);
     }
 }
