@@ -18,7 +18,7 @@ The following need to be available to ensure that the API and the SQL Server dat
 - [Visual Studio 2022 or higher](https://visualstudio.microsoft.com/downloads/)
 - [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-2022)
 - [SQL Server Management Studio (SSMS)](https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms?view=sql-server-ver16)
-- [AWS user account](https://aws.amazon.com/)
+- [Azure user account](https://portal.azure.com/)
   
 # Installation
 
@@ -33,25 +33,24 @@ cd ..\EntityORM
 dotnet restore
 ```
 
-The API and the SQL Server instance need to be published to a cloud provider to ensure that remote connections can call the API. [AWS](https://aws.amazon.com/) is used as the provider to publish the API and host the instance. Steps to deploy the API and the instance are
+The API and the SQL Server instance need to be published to a cloud provider to ensure that remote connections can call the API. [Azure](https://azure.microsoft.com/en-us) is used as the provider to publish the API and host the instance. 
+
+<!-- Steps to deploy the API and the instance are
 
 - [Create a VPC to deploy the Identity API](https://github.com/PostOShare/IdentityWebApi/wiki/Create-a-VPC-to-deploy-the-Identity-API)
 - [Installation of DB](https://github.com/PostOShare/IdentityWebApi/wiki/Installation-of-DB)
-- [Create a Lambda function, HTTP API and deploy the Identity API](https://github.com/PostOShare/IdentityWebApi/wiki/Create-a-Lambda-function,-HTTP-API-and-deploy-the-Identity-API)
+- [Create a Lambda function, HTTP API and deploy the Identity API](https://github.com/PostOShare/IdentityWebApi/wiki/Create-a-Lambda-function,-HTTP-API-and-deploy-the-Identity-API)-->
 
-# Deployment
+<!-- # Deployment
 
 The API and the SQL Server instance deployment architecture in AWS is illustrated below:
 
-![Architecture of API deployment](https://github.com/PostOShare/IdentityWebApi/assets/17848426/576dbbbd-b03b-4190-8e3c-0345017da049)
+![Architecture of API deployment](https://github.com/PostOShare/IdentityWebApi/assets/17848426/576dbbbd-b03b-4190-8e3c-0345017da049)-->
 
 # Dependencies
 
 ## Production dependencies
 
--  Amazon.Lambda.AspNetCoreServer
--  Amazon.Lambda.AspNetCoreServer.Hosting
--  AWS.Logger.AspNetCore
 -  MailKit
 -  Microsoft.AspNetCore.Authentication.JwtBearer
 -  Microsoft.AspNetCore.Identity.EntityFrameworkCore
