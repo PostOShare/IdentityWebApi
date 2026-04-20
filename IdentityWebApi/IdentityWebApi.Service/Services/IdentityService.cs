@@ -6,7 +6,10 @@ using IdentityWebApiCommon.Models.DTO.Request;
 using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace IdentityWebApi.Services
 {
@@ -23,10 +26,10 @@ namespace IdentityWebApi.Services
             _logger = logger;
         }
 
-        public async Task<AuthResultDTO> Login(LoginRequestDTO login)
+        public async Task<AuthResultDTO> Login(LoginRequestDTO loginRequestDTO)
         {
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
-                                   Constants.LoginIdentityRoute, login.Username);
+                                   Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
             // Check whether a user exists
 
@@ -34,7 +37,7 @@ namespace IdentityWebApi.Services
 
             try
             {
-                current = await _context.Logins.Where(user => user.Username.Equals(login.Username))
+                current = await _context.Logins.Where(user => user.Username.Equals(loginRequestDTO.Username))
                                                .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -46,7 +49,7 @@ namespace IdentityWebApi.Services
             if (current == null)
             {
                 _logger.LogError("Route: {method}, User: {username} | Invalid username and/or password",
-                                 Constants.LoginIdentityRoute, login.Username);
+                                 Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
                 return new AuthResultDTO
                 {
@@ -59,7 +62,7 @@ namespace IdentityWebApi.Services
 
             var exists = false;
 
-            using (var deriveBytes = new Rfc2898DeriveBytes(login.Password, Convert.FromBase64String(current.Salt)))
+            using (var deriveBytes = new Rfc2898DeriveBytes(loginRequestDTO.Password, Convert.FromBase64String(current.Salt)))
             {
                 byte[] newKey = deriveBytes.GetBytes(20);
                 exists = newKey.SequenceEqual(Convert.FromBase64String(current.Key));
@@ -68,7 +71,7 @@ namespace IdentityWebApi.Services
             if (!exists)
             {
                 _logger.LogError("Route: {method}, User: {username} | Invalid username and/or password",
-                                 Constants.LoginIdentityRoute, login.Username);
+                                 Constants.LoginIdentityRoute, loginRequestDTO.Username);
                 return new AuthResultDTO
                 {
                     Result = false,
@@ -78,13 +81,13 @@ namespace IdentityWebApi.Services
                 };
             }
 
-            // If the user exists, update login time
+            // If the user exists, update loginRequestDTO time
             current.LastLoginTime = DateTime.Now;
 
             try
             {
-                _logger.LogInformation("Route: {method}, User: {username} | Updating date and time for current login: {logintime}",
-                                       Constants.LoginIdentityRoute, login.Username, current.LastLoginTime);
+                _logger.LogInformation("Route: {method}, User: {username} | Updating date and time for current loginRequestDTO: {logintime}",
+                                       Constants.LoginIdentityRoute, loginRequestDTO.Username, current.LastLoginTime);
 
                 _context.Logins.Update(current);
                 _context.SaveChanges();
@@ -92,25 +95,25 @@ namespace IdentityWebApi.Services
             catch (DbUpdateException ex)
             {
                 _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
-                                 Constants.LoginIdentityRoute, login.Username, ex.Message);
+                                 Constants.LoginIdentityRoute, loginRequestDTO.Username, ex.Message);
                 throw;
             }
 
             //Generate a refresh token and save in DB
 
             _logger.LogInformation("Route: {method}, User: {username} | Generate a refresh token and save in DB",
-                                   Constants.LoginIdentityRoute, login.Username);
+                                   Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
             var refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
 
-            _logger.LogInformation("Route: {method}, User: {username} | Checking whether login exists",
-                                   Constants.LoginIdentityRoute, login.Username);
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether loginRequestDTO exists",
+                                   Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
             UserAuth? authUser = null;
 
             try
             {
-                authUser = await _context.UserAuths.Where(user => user.Username.Equals(login.Username))
+                authUser = await _context.UserAuths.Where(user => user.Username.Equals(loginRequestDTO.Username))
                                                    .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -121,8 +124,8 @@ namespace IdentityWebApi.Services
 
             if (authUser == null)
             {
-                _logger.LogInformation("Route: {method}, User: {username} | New login", Constants.LoginIdentityRoute,
-                                       login.Username);
+                _logger.LogInformation("Route: {method}, User: {username} | New loginRequestDTO", Constants.LoginIdentityRoute,
+                                       loginRequestDTO.Username);
 
                 var userAuth = new UserAuth
                 {
@@ -134,8 +137,8 @@ namespace IdentityWebApi.Services
 
                 try
                 {
-                    _logger.LogInformation("Route: {method}, User: {username} | Adding new login",
-                                           Constants.LoginIdentityRoute, login.Username);
+                    _logger.LogInformation("Route: {method}, User: {username} | Adding new loginRequestDTO",
+                                           Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
                     _context.Add(userAuth);
                     _context.SaveChanges();
@@ -143,22 +146,22 @@ namespace IdentityWebApi.Services
                 catch (DbUpdateException ex)
                 {
                     _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
-                                     Constants.LoginIdentityRoute, login.Username, ex.Message);
+                                     Constants.LoginIdentityRoute, loginRequestDTO.Username, ex.Message);
                     throw;
                 }
             }
             else
             {
                 _logger.LogInformation("Route: {method}, User: {username} | Login exists",
-                                       Constants.LoginIdentityRoute, login.Username);
+                                       Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
                 authUser.Token = refresh;
                 authUser.CreatedTime = DateTime.Now;
 
                 try
                 {
-                    _logger.LogInformation("Route: {method}, User: {username} | Updating login",
-                                           Constants.LoginIdentityRoute, login.Username);
+                    _logger.LogInformation("Route: {method}, User: {username} | Updating loginRequestDTO",
+                                           Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
                     _context.UserAuths.Update(authUser);
                     _context.SaveChanges();
@@ -166,7 +169,7 @@ namespace IdentityWebApi.Services
                 catch (DbUpdateException ex)
                 {
                     _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
-                                     Constants.LoginIdentityRoute, login.Username, ex.Message);
+                                     Constants.LoginIdentityRoute, loginRequestDTO.Username, ex.Message);
                     throw;
                 }
 
@@ -180,16 +183,16 @@ namespace IdentityWebApi.Services
             };
         }
 
-        public async Task<BaseResponseDTO> Register(RegisterRequestDTO register)
+        public async Task<BaseResponseDTO> Register(RegisterRequestDTO registerRequestDTO)
         {
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
-                                   Constants.RegisterIdentityRoute, register.Username);
+                                   Constants.RegisterIdentityRoute, registerRequestDTO.Username);
 
             Login? current = null;
 
             try
             {
-                current = await _context.Logins.Where(user => user.Username.Equals(register.Username))
+                current = await _context.Logins.Where(user => user.Username.Equals(registerRequestDTO.Username))
                                                .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -201,7 +204,7 @@ namespace IdentityWebApi.Services
             if (current != null)
             {
                 _logger.LogInformation("Route: {method}, User: {username} | User exists",
-                                       Constants.RegisterIdentityRoute, register.Username);
+                                       Constants.RegisterIdentityRoute, registerRequestDTO.Username);
 
                 return new BaseResponseDTO { Error = "The given account could not be registered." , Result = false};
             }
@@ -209,18 +212,18 @@ namespace IdentityWebApi.Services
             //If the user does not exist, add the user with the given data to Login
 
             _logger.LogInformation("Route: {method}, User: {username} |  Add the user to Login",
-                                   Constants.RegisterIdentityRoute, register.Username);
+                                   Constants.RegisterIdentityRoute, registerRequestDTO.Username);
 
-            using (var deriveBytes = new Rfc2898DeriveBytes(register.Password, 20))
+            using (var deriveBytes = new Rfc2898DeriveBytes(registerRequestDTO.Password, 20))
             {
                 var login = new Login
                 {
-                    Username = register.Username,
+                    Username = registerRequestDTO.Username,
                     Salt = Convert.ToBase64String(deriveBytes.Salt),
                     Key = Convert.ToBase64String(deriveBytes.GetBytes(20)),
                     RegisteredDate = DateTime.Now,
                     LastLoginTime = DateTime.Now,
-                    UserRole = register.UserRole,
+                    UserRole = registerRequestDTO.UserRole,
                     IsActive = true
                 };
 
@@ -232,23 +235,23 @@ namespace IdentityWebApi.Services
                 catch (DbUpdateException ex)
                 {
                     _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
-                                        Constants.RegisterIdentityRoute, register.Username, ex.Message);
+                                        Constants.RegisterIdentityRoute, registerRequestDTO.Username, ex.Message);
                     throw;
                 }
             }
 
             _logger.LogInformation("Route: {method}, User: {username} |  Add the user to User",
-                                   Constants.RegisterIdentityRoute, register.Username);
+                                   Constants.RegisterIdentityRoute, registerRequestDTO.Username);
 
             var user = new User
             {
-                Username = register.Username,
-                Title = register.Title,
-                FirstName = register.FirstName,
-                LastName = register.LastName,
-                Suffix = register.Suffix,
-                EmailAddress = register.EmailAddress,
-                Phone = register.Phone
+                Username = registerRequestDTO.Username,
+                Title = registerRequestDTO.Title,
+                FirstName = registerRequestDTO.FirstName,
+                LastName = registerRequestDTO.LastName,
+                Suffix = registerRequestDTO.Suffix,
+                EmailAddress = registerRequestDTO.EmailAddress,
+                Phone = registerRequestDTO.Phone
             };
 
             try
@@ -259,12 +262,12 @@ namespace IdentityWebApi.Services
             catch (DbUpdateException ex)
             {
                 _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
-                                    Constants.RegisterIdentityRoute, register.Username, ex.Message);
+                                    Constants.RegisterIdentityRoute, registerRequestDTO.Username, ex.Message);
                 throw;
             }
 
             _logger.LogInformation("Route: {method}, User: {username} |  User has been registered",
-                                   Constants.RegisterIdentityRoute, register.Username);
+                                   Constants.RegisterIdentityRoute, registerRequestDTO.Username);
 
             return new BaseResponseDTO { Error = string.Empty, Result = true };
         }
@@ -484,6 +487,138 @@ namespace IdentityWebApi.Services
                                    Constants.ChangeCredentialsIdentityRoute, updateRequestDTO.Username);
 
             return new BaseResponseDTO { Error = string.Empty, Result = true };
+        }
+
+        public async Task<AuthResultDTO> GenerateAccessToken(CreateTokenRequestDTO createTokenRequestDTO)
+        {
+            _logger.LogInformation("Route: {method}, Refresh token: {token} | Checking whether the refresh token exists",
+                                   Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+
+            UserAuth? authUser = null;
+            try
+            {
+                authUser = await _context.UserAuths.Where(user => user.Token!.Equals(createTokenRequestDTO.RefreshToken))
+                                                   .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                throw;
+            }
+
+            if (authUser == null)
+            {
+                _logger.LogError("Route: {method}, Refresh token: {token} | Invalid refresh token",
+                                 Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+
+                return new AuthResultDTO
+                {
+                    RefreshToken = string.Empty,
+                    AccessToken = string.Empty,
+                    Result = false,
+                    Error = Constants.InvalidRefreshTokenError
+                };
+            }
+
+            var refresh = authUser.Token;
+
+            // if the refresh token's created time is more than 1 day it is expired
+            if (authUser.CreatedTime.AddDays(1) > DateTime.UtcNow)
+            {
+                _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating refresh token",
+                                  Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+
+                refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
+                authUser.CreatedTime = DateTime.Now;
+
+                try
+                {
+                    _context.UserAuths.Update(authUser);
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                    throw;
+                }
+            }
+
+            _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating access token",
+                                  Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+
+            var access = new JWTTokenGenerationHelper().GenerateJWTToken(authUser.Username);
+
+            _logger.LogInformation("Route: {method}, Refresh token: {token} | Token(s) were created",
+                                  Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+
+            return new AuthResultDTO
+            {
+                RefreshToken = refresh!,
+                AccessToken = access,
+                Result = true
+            };
+        }
+
+        public async Task<AuthResultDTO> ValidateAccessToken(CreateTokenRequestDTO createTokenRequestDTO, string secretKey)
+        {
+            _logger.LogInformation("Route: {method}, Access token: {token} | Validating the access token",
+                                   Constants.ValidateAccessTokenIdentityRoute, createTokenRequestDTO.AccessToken);
+
+            var handler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(secretKey);
+
+            JwtSecurityToken? token = null;
+            try
+            {
+                handler.ValidateToken(createTokenRequestDTO.AccessToken, new TokenValidationParameters()
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    RequireExpirationTime = false,
+                    ValidateLifetime = false
+                }, out var validateToken);
+
+                token = (JwtSecurityToken) validateToken;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("The token is invalid or unknown exception: {exception}", ex.Message);
+
+                return new AuthResultDTO
+                           {
+                               Error = Constants.InvalidAccessTokenError,
+                               Result = false
+                           };
+            }
+
+
+            var expiry = Convert.ToInt64(token.Claims.Where(p => p.Type == "exp").FirstOrDefault()?.Value);
+            var expired = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() > expiry;
+
+            if (expired)
+            {
+                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is valid",
+                                   Constants.ValidateAccessTokenIdentityRoute, createTokenRequestDTO.AccessToken);
+
+                return new AuthResultDTO
+                {
+                    Error = Constants.TokenExpiredError,
+                    Result = false
+                };
+            }
+            else
+            {
+                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is expired",
+                                   Constants.ValidateAccessTokenIdentityRoute, createTokenRequestDTO.AccessToken);
+
+                return new AuthResultDTO
+                {
+                    Error = string.Empty,
+                    Result = true
+                };
+            }
         }
     }
 }

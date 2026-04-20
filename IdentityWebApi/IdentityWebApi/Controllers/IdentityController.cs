@@ -14,10 +14,12 @@ namespace IdentityWebApi.Controllers
     public class IdentityController : ControllerBase
     {
         public IIdentityService _identityService;
+        public IConfiguration _configuration;
 
-        public IdentityController(IIdentityService identityService)
+        public IdentityController(IIdentityService identityService, IConfiguration configuration)
         {
             _identityService = identityService;
+            _configuration = configuration;
         }
 
 
@@ -35,11 +37,11 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO loginRequest)
+        public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO loginRequestDTO)
         {
             try
             {
-                var response = await _identityService.Login(loginRequest);
+                var response = await _identityService.Login(loginRequestDTO);
 
                 if(response.Error.Equals(Constants.UserValidationError))
                     return BadRequest(Constants.UserValidationError);
@@ -71,11 +73,11 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequest)
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequestDTO)
         {
             try
             {
-                var response = await _identityService.Register(registerRequest);
+                var response = await _identityService.Register(registerRequestDTO);
 
                 if (!response.Result)
                     return BadRequest(Constants.UserExistsError);
@@ -240,7 +242,6 @@ namespace IdentityWebApi.Controllers
             }
         }
 
-        /*
         /// <summary> Creates an access token based on the user's refresh token
         /// </summary>
         /// <returns> 
@@ -254,85 +255,35 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO request)
+        public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
         {
-            if (!ModelState.IsValid || string.IsNullOrEmpty(request.RefreshToken))
-                return BadRequest("Invalid request");
+            if (string.IsNullOrEmpty(createTokenRequestDTO.RefreshToken))
+                return BadRequest(Constants.InvalidRefreshTokenError);
 
-            _logger.LogInformation("Route: {method}, Refresh token: {token} | Checking whether the refresh token exists",
-                                   Constants.GENERATEACCESSTOKENIdentityRoute, request.RefreshToken);
-
-            UserAuth? authUser = null;
             try
             {
-                authUser = await _context.UserAuths.Where(user => user.Token.Equals(request.RefreshToken))
-                                                       .FirstOrDefaultAsync();
+                var response = await _identityService.GenerateAccessToken(createTokenRequestDTO);
+
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return StatusCode(StatusCodes.Status201Created,
+                              new AuthResultDTO
+                              {
+                                  RefreshToken = response.RefreshToken,
+                                  AccessToken = response.AccessToken,
+                                  Result = true
+                              });
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = "An internal error occurred",
+                                      Error = ex.Message,
                                       Result = false
                                   });
             }
-
-            if (authUser == null)
-            {
-                _logger.LogError("Route: {method}, Refresh token: {token} | Invalid refresh token",
-                                 Constants.GENERATEACCESSTOKENIdentityRoute, request.RefreshToken);
-
-                return BadRequest("Invalid request");
-            }
-                
-
-            var refresh = authUser.Token;
-
-            // if the refresh token's created time is more than 1 day it is expired
-            if (authUser.CreatedTime.AddDays(1) > DateTime.UtcNow)
-            {
-                _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating refresh token",
-                                  Constants.GENERATEACCESSTOKENIdentityRoute, request.RefreshToken);
-
-                refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
-                authUser.CreatedTime = DateTime.Now;
-
-                try
-                {
-                    _context.UserAuths.Update(authUser);
-                    _context.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
-
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                                      new AuthResultDTO
-                                      {
-                                          Error = "An internal error occurred",
-                                          Result = false
-                                      });
-                }
-            }
-
-            _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating access token",
-                                  Constants.GENERATEACCESSTOKENIdentityRoute, request.RefreshToken);
-
-            var access = new JWTTokenGenerationHelper().GenerateJWTToken(authUser.Username);
-
-            _logger.LogInformation("Route: {method}, Refresh token: {token} | Token(s) were created",
-                                  Constants.GENERATEACCESSTOKENIdentityRoute, request.RefreshToken);
-
-            return StatusCode(StatusCodes.Status201Created,
-                              new AuthResultDTO
-                              {
-                                  RefreshToken = refresh,
-                                  AccessToken = access,
-                                  Result = true
-                              });
         }
 
         /// <summary> Validates an access token
@@ -346,63 +297,36 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Validates an access token")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public ActionResult ValidateAccessToken([FromBody] CreateTokenRequestDTO request)
+        public async Task<IActionResult> ValidateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
         {
-            if (!ModelState.IsValid || string.IsNullOrEmpty(request.AccessToken))
-                return BadRequest("Invalid request");
+            if (string.IsNullOrEmpty(createTokenRequestDTO.AccessToken))
+                return BadRequest(Constants.InvalidAccessTokenError);
 
-            _logger.LogInformation("Route: {method}, Access token: {token} | Validating the access token",
-                                   Constants.VALIDATEACCESSTOKENIdentityRoute, request.AccessToken);
-
-            var handler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("dkfgnkdfhfghfghjhjkhdfgdbnmbnsdfsdfhjkhjkssdfsgjgjhbnvbnhgjghjdgdfg");
-
-            JwtSecurityToken? token = null;
             try
             {
-                handler.ValidateToken(request.AccessToken, new TokenValidationParameters()
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    RequireExpirationTime = false,
-                    ValidateLifetime = false
-                }, out var validateToken);
+                var key = _configuration.GetSection(Constants.SecretKey).Value;
+                var response = await _identityService.ValidateAccessToken(createTokenRequestDTO, key!);
 
-                token = (JwtSecurityToken)validateToken;
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return StatusCode(StatusCodes.Status200OK,
+                              new AuthResultDTO
+                              {
+                                  RefreshToken = response.RefreshToken,
+                                  AccessToken = response.AccessToken,
+                                  Result = true
+                              });
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("The token is invalid or unknown exception: {exception}", ex.Message);
-
-                return StatusCode(StatusCodes.Status400BadRequest,
+                return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = "The token is invalid",
+                                      Error = ex.Message,
                                       Result = false
                                   });
             }
-
-            
-            var expiry = Convert.ToInt64(token.Claims.Where(p => p.Type == "exp").FirstOrDefault()?.Value);
-            var expired = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() > expiry;
-
-            if (expired)
-            {
-                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is valid",
-                                   Constants.VALIDATEACCESSTOKENIdentityRoute, request.AccessToken);
-
-                return BadRequest("Token is expired.");
-            }               
-            else
-            {
-                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is expired",
-                                   Constants.VALIDATEACCESSTOKENIdentityRoute, request.AccessToken);
-
-                return Ok();
-            }                          
         }
-        */
     }
 }

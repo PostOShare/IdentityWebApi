@@ -14,10 +14,14 @@
 
         //configuration
         public const string Subject = "PostOShare OTP";
+        public const string SecretKey = "SecretKey";
 
         //Validation
         public const string UserValidationError = "Invalid username and/or password";
         public const string UserExistsError = "Please choose a different username and/or password";
         public const string InvalidOTPError = "Invalid OTP";
+        public const string InvalidAccessTokenError = "Invalid access token";
+        public const string InvalidRefreshTokenError = "Invalid refresh token";
+        public const string TokenExpiredError = "Token is expired";
     }
 }
