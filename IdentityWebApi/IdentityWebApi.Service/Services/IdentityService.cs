@@ -523,7 +523,7 @@ namespace IdentityWebApi.Services
             var refresh = authUser.Token;
 
             // if the refresh token's created time is more than 1 day it is expired
-            if (authUser.CreatedTime.AddDays(1) > DateTime.UtcNow)
+            if (DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) < 0)
             {
                 _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating refresh token",
                                   Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
