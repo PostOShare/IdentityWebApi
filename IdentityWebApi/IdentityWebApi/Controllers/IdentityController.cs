@@ -1,17 +1,11 @@
-﻿using EntityORM.DatabaseEntity;
-using IdentityWebApi.HelperUtility;
-using IdentityWebApi.Models;
-using IdentityWebApi.Models.DTO;
-using IdentityWebApi.Services;
+﻿using IdentityWebApi.Services;
+using IdentityWebApiCommon.HelperUtility;
+using IdentityWebApiCommon.Models.DTO.Request;
+using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace IdentityWebApi.Controllers
 {
@@ -19,13 +13,13 @@ namespace IdentityWebApi.Controllers
     [ApiController]
     public class IdentityController : ControllerBase
     {
-        private readonly IdentityPmContext _context;
-        private readonly IEmailService _mailService;
+        public IIdentityService _identityService;
+        public IConfiguration _configuration;
 
-        public IdentityController(IdentityPmContext context, IEmailService emailService)
+        public IdentityController(IIdentityService identityService, IConfiguration configuration)
         {
-            _context = context;
-            _mailService = emailService;
+            _identityService = identityService;
+            _configuration = configuration;
         }
 
 
@@ -34,273 +28,147 @@ namespace IdentityWebApi.Controllers
         /// </summary>
         /// <returns> 
         /// A ObjectResult whether the user exists (Status OK), Not found or
-        /// data is invalid (Status Bad Request)
+        /// data is invalid (Status BadRequest), or an internal error occurred 
+        /// (Status InternalServerError)
         /// </returns>
         [HttpPost]
         [Route("login-identity")]
         [SwaggerOperation("Checks whether a username/password exists")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO login)
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> Login([FromBody, Required] LoginRequestDTO loginRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
-
-            // Check whether a user with the username and password exists
-            var current = await _context.Logins.Where(user => user.Username.Equals(login.Username))
-                                               .FirstOrDefaultAsync();
-
-            if (current == null)
-                return BadRequest("Invalid username and/or password");
-
-            var exists = false;
-
-            using (var deriveBytes = new Rfc2898DeriveBytes(login.Password, Convert.FromBase64String(current.Salt)))
-            {
-                byte[] newKey = deriveBytes.GetBytes(20);
-                exists = newKey.SequenceEqual(Convert.FromBase64String(current.Key));
-            }
-
-            if (!exists)
-                return BadRequest("Invalid username and/or password");
-
-            // If the user exists, update login time
-            current.LastLoginTime = DateTime.Now;
-
             try
             {
-                _context.Logins.Update(current);
-                _context.SaveChanges();
+                var response = await _identityService.Login(loginRequestDTO);
+
+                if(response.Error.Equals(Constants.UserValidationError))
+                    return BadRequest(Constants.UserValidationError);
+                else
+                    return Ok(response);
             }
-            catch (DbUpdateException ex)
+            catch(Exception ex)
             {
-                // Log exception to Cloud Log (to be implemented)
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                new AuthResultDTO
-                                {
-                                    Error = "An internal error occurred",
-                                    Result = false
-                                });
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
             }
-
-            //Generate a refresh token and save in DB
-            var refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
-            var authUser = await _context.UserAuths.Where(user => user.Username.Equals(login.Username))
-                                                   .FirstOrDefaultAsync();
-
-            if (authUser == null)
-            {
-                var userAuth = new UserAuth
-                {
-                    Username = current.Username,
-                    Token = refresh,
-                    CreatedTime = DateTime.Now,
-                    Enabled = true
-                };
-
-                try
-                {
-                    _context.Add(userAuth);
-                    _context.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    // Log exception to Cloud Log (to be implemented)
-                    return StatusCode(StatusCodes.Status500InternalServerError);
-                }
-            }
-            else
-            {
-                authUser.Token = refresh;
-                authUser.CreatedTime = DateTime.Now;
-
-                try
-                {
-                    _context.UserAuths.Update(authUser);
-                    _context.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    // Log exception to Cloud Log (to be implemented)
-                    return StatusCode(StatusCodes.Status500InternalServerError);
-                }
-
-            }
-
-            return Ok(new AuthResultDTO
-            {
-                Result = true,
-                RefreshToken = refresh,
-                AccessToken = new JWTTokenGenerationHelper().GenerateJWTToken(current.Username)
-            });
         }
 
         /// <summary> 
         /// Registers data of a user
         /// </summary>
         /// <returns> 
-        /// A ObjectResult whether the user was created (Status Created), Not found or
-        /// data is invalid (Status Bad Request)
+        /// A ObjectResult whether the user was created (Status Created), User exists or
+        /// data is invalid (Status BadRequest), or an internal error occurred 
+        /// (Status InternalServerError) 
         /// </returns>
         [HttpPost]
         [Route("register-identity")]
         [SwaggerOperation("Registers the user data with given username")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> Register([FromBody] RegisterRequestDTO register)
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
-
-            //Check whether a user with given username exists
-            var current = await _context.Logins.Where(user => user.Username.Equals(register.Username))
-                                               .FirstOrDefaultAsync();
-
-            if (current != null)
-                return BadRequest("The given account could not be registered.");
-
-            //If the user does not exist, add the user with given data to login          
-            using (var deriveBytes = new Rfc2898DeriveBytes(register.Password, 20))
-            {
-                var login = new Login
-                {
-                    Username = register.Username,
-                    Salt = Convert.ToBase64String(deriveBytes.Salt),
-                    Key = Convert.ToBase64String(deriveBytes.GetBytes(20)),
-                    RegisteredDate = DateTime.Now,
-                    LastLoginTime = DateTime.Now,
-                    UserRole = register.UserRole,
-                    IsActive = true
-                };
-
-                try
-                {
-                    _context.Add(login);
-                    _context.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    // Log exception to Cloud Log (to be implemented)
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                                    new AuthResultDTO
-                                    {
-                                        Error = "An error occurred when adding user",
-                                        Result = false
-                                    });
-                }
-            }
-
-            //If the user does not exist, add the user with given data to user
-            var user = new User
-            {
-                Username = register.Username,
-                Title = register.Title,
-                FirstName = register.FirstName,
-                LastName = register.LastName,
-                Suffix = register.Suffix,
-                EmailAddress = register.EmailAddress,
-                Phone = register.Phone
-            };
-
             try
             {
-                _context.Add(user);
-                _context.SaveChanges();
-            }
-            catch (DbUpdateException ex)
-            {
-                // Log exception to Cloud Log (to be implemented)
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                                new AuthResultDTO
-                                {
-                                    Error = "An error occurred when adding user",
-                                    Result = false
-                                });
-            }
+                var response = await _identityService.Register(registerRequestDTO);
 
-            return StatusCode(StatusCodes.Status201Created);
+                if (!response.Result)
+                    return BadRequest(Constants.UserExistsError);
+                else
+                    return StatusCode(StatusCodes.Status201Created);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
+            }
         }
 
+        
         /// <summary> 
         /// Checks whether a username and email address exists
         /// </summary>
         /// <returns> 
         /// A ObjectResult whether the user exists (Status OK),
-        /// username was not found or data is invalid (Status Bad Request)
+        /// username was not found or data is invalid (Status Bad Request),
+        /// or an internal error occurred (Status InternalServerError)
         /// </returns>
         [HttpPost]
         [Route("search-identity")]
         [SwaggerOperation("Validate if the username and email exists")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO userDTO)
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO updateRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
+            try
+            {
+                var response = await _identityService.UserData(updateRequestDTO);
 
-            // Check whether a user with the username exists
-            var username = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
-                                               .FirstOrDefaultAsync();
-            var email = await _context.Users.Where(user => user.EmailAddress.Equals(userDTO.EmailAddress))
-                                               .FirstOrDefaultAsync();
-
-            if (username == null || email == null)
-                return BadRequest("Invalid username and/or email");
-
-            return Ok(new AuthResultDTO { Result = true });
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return Ok(new AuthResultDTO { Result = true });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
+            }
         }
+
 
         /// <summary> 
         /// Generates an OTP, saves the OTP to DB and sends the OTP to the user's email
         /// </summary>
         /// <returns> 
-        /// A ObjectResult whether the OTP was created (Status Created)
+        /// A ObjectResult whether the OTP was sent (Status Created),
+        /// username was not found or data is invalid (Status Bad Request)
         /// or email was not sent (Status Internal Server Error)
         /// </returns>
         [HttpPost]
         [Route("verify-identity")]
-        [SwaggerOperation("Check email and send OTP")]
+        [SwaggerOperation("Check username and send OTP")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
-        public async Task<IActionResult> SendVerification([FromBody] UpdateRequestDTO userDTO)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> SendVerification([FromBody] UpdateRequestDTO updateRequestDTO)
         {
-            var user = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
-                                                  .FirstOrDefaultAsync();
-
-            var otpModel = new OTPModel();
-            var otp = otpModel.CreateOTP();
-
-            var otpvalidate = new Otpvalidate
-            {
-                Username = userDTO.Username,
-                Otp = otp,
-                RequestedTime = DateTime.Now,
-                RetryAttempt = 0
-            };
-
             try
             {
-                _context.Otpvalidates.Add(otpvalidate);
-                _context.SaveChanges();
+                var response = await _identityService.SendVerification(updateRequestDTO);
+
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return StatusCode(StatusCodes.Status201Created);
             }
-            catch (DbUpdateException ex)
+            catch (Exception ex)
             {
-                // Log exception to Cloud Log (to be implemented)
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                 new AuthResultDTO
-                                 {
-                                     Error = "An error occurred when adding user",
-                                     Result = false
-                                 });
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
             }
-
-            var subject = "PostOShare OTP";
-            var body = otpModel.Body(otp);
-
-            var sent = await _mailService.SendMail(userDTO.EmailAddress, subject, body);
-
-            var code = sent ? StatusCodes.Status201Created : StatusCodes.Status500InternalServerError;
-            return StatusCode(code);
         }
+
 
         /// <summary> 
         /// Checks if the OTP response from the input is valid
@@ -315,57 +183,35 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Checks whether OTP response is correct")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO userDTO)
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO updateRequestDTO)
         {
-            var exist = await _context.Otpvalidates.Where(user => user.Username.Equals(userDTO.Username))
-                                                   .FirstOrDefaultAsync();
-
-            if (exist.Otp == userDTO.Otp)
+            try
             {
-                return StatusCode(StatusCodes.Status200OK);
-            }
-            else
-            {
-                if (exist.RetryAttempt < 4)
-                {
-                    exist.RetryAttempt++;
+                var response = await _identityService.ValidatePasscode(updateRequestDTO);
 
-                    try
-                    {
-                        _context.Otpvalidates.Update(exist);
-                        _context.SaveChanges();
-                    }
-                    catch (DbUpdateException ex)
-                    {
-                        // Log exception to Cloud Log (to be implemented)
-                        return StatusCode(StatusCodes.Status500InternalServerError,
-                                         new AuthResultDTO
-                                         {
-                                             Error = "An error occurred when validating the OTP",
-                                             Result = false
-                                         });
-                    }
-
-                    return StatusCode(StatusCodes.Status400BadRequest);
-                }
+                if (!response.Result)
+                    return BadRequest(response.Error);
                 else
-                {
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                                      new AuthResultDTO
-                                      {
-                                          Error = "Cannot try more than maximum attempts",
-                                          Result = false
-                                      });
-                }
+                    return Ok(new AuthResultDTO { Result = true });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
             }
         }
 
         /// <summary> 
-        /// Checks the username and updates the Key and Salt
+        /// Checks the username and updates the Key and Salt for the username
         /// </summary>
         /// <returns> 
         /// A ObjectResult whether the Key and Salt were updated (Status OK), 
-        /// Not updated (Status Not Modified) or
+        /// Not updated (Status Internal Server Error) or
         /// data is invalid (Status Bad Request)
         /// </returns>
         [HttpPatch]
@@ -373,38 +219,27 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Updates key and salt based on password sent in request for a username")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO userDTO)
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO updateRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
-
-            // Check whether a user with the username and password exists
-            var current = await _context.Logins.Where(user => user.Username.Equals(userDTO.Username))
-                                               .FirstOrDefaultAsync();
-
-            using (var deriveBytes = new Rfc2898DeriveBytes(userDTO.Password, 20))
+            try
             {
-                current.Salt = Convert.ToBase64String(deriveBytes.Salt);
-                current.Key = Convert.ToBase64String(deriveBytes.GetBytes(20));
+                var response = await _identityService.UpdateKeySalt(updateRequestDTO);
 
-                try
-                {
-                    _context.Update(current);
-                    _context.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    // Log exception to Cloud Log (to be implemented)
-                    return StatusCode(StatusCodes.Status304NotModified,
-                                    new AuthResultDTO
-                                    {
-                                        Error = "An error occurred when updating password",
-                                        Result = false
-                                    });
-                }
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return Ok(new AuthResultDTO { Result = true });
             }
-
-            return Ok(new AuthResultDTO { Result = true });
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
+            }
         }
 
         /// <summary> Creates an access token based on the user's refresh token
@@ -419,46 +254,36 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Creates an access token")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO request)
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
+            if (string.IsNullOrEmpty(createTokenRequestDTO.RefreshToken))
+                return BadRequest(Constants.InvalidRefreshTokenError);
 
-            var authUser = await _context.UserAuths.Where(user => user.Token.Equals(request.RefreshToken))
-                                                   .FirstOrDefaultAsync();
-
-            if (authUser == null)
-                return BadRequest("Invalid request");
-
-            var refresh = authUser.Token;
-
-            // if the refresh token's created time is more than 1 day it is expired
-            if (authUser.CreatedTime.AddDays(1) > DateTime.Now)
+            try
             {
-                refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
-                authUser.CreatedTime = DateTime.Now;
+                var response = await _identityService.GenerateAccessToken(createTokenRequestDTO);
 
-                try
-                {
-                    _context.UserAuths.Update(authUser);
-                    _context.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    // Log exception to Cloud Log (to be implemented)
-                    return StatusCode(StatusCodes.Status500InternalServerError);
-                }
-            }
-
-            var access = new JWTTokenGenerationHelper().GenerateJWTToken(authUser.Username);
-
-            return StatusCode(StatusCodes.Status201Created,
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return StatusCode(StatusCodes.Status201Created,
                               new AuthResultDTO
                               {
-                                  RefreshToken = refresh,
-                                  AccessToken = access,
+                                  RefreshToken = response.RefreshToken,
+                                  AccessToken = response.AccessToken,
                                   Result = true
                               });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
+            }
         }
 
         /// <summary> Validates an access token
@@ -472,32 +297,36 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Validates an access token")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public ActionResult ValidateAccessToken([FromBody] CreateTokenRequestDTO request)
+        public async Task<IActionResult> ValidateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Invalid request");
+            if (string.IsNullOrEmpty(createTokenRequestDTO.AccessToken))
+                return BadRequest(Constants.InvalidAccessTokenError);
 
-            var handler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("dkfgnkdfhfghfghjhjkhdfgdbnmbnsdfsdfhjkhjkssdfsgjgjhbnvbnhgjghjdgdfg");
-
-            handler.ValidateToken(request.AccessToken, new TokenValidationParameters()
+            try
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                RequireExpirationTime = false,
-                ValidateLifetime = false
-            },out var validateToken);
+                var key = _configuration.GetSection(Constants.SecretKey).Value;
+                var response = await _identityService.ValidateAccessToken(createTokenRequestDTO, key!);
 
-            var token = (JwtSecurityToken)validateToken;
-            var expiry = Convert.ToInt64(token.Claims.Where(p => p.Type == "exp").FirstOrDefault()?.Value);
-            var expired = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() > expiry;
-
-            if (expired)
-                return BadRequest("Token is expired.");
-            else
-                return Ok();            
+                if (!response.Result)
+                    return BadRequest(response.Error);
+                else
+                    return StatusCode(StatusCodes.Status200OK,
+                              new AuthResultDTO
+                              {
+                                  RefreshToken = response.RefreshToken,
+                                  AccessToken = response.AccessToken,
+                                  Result = true
+                              });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new AuthResultDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
+            }
         }
     }
 }

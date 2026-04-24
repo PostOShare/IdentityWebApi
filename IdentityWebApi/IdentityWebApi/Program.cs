@@ -1,6 +1,8 @@
 using EntityORM.DatabaseEntity;
-using IdentityWebApi.Configuration;
+using IdentityWebApi.ApiFilters;
+using IdentityWebApi.Repositories;
 using IdentityWebApi.Services;
+using IdentityWebApiCommon.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -11,11 +13,19 @@ namespace IdentityWebApi
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
-            builder.Services.AddControllers();
+           
             builder.Services.AddDbContext<IdentityPmContext>(options => options.UseSqlServer(builder.Configuration.GetSection("ConnectionDB").Value));
-            builder.Services.AddScoped<IEmailService,Email>();
+            builder.Services.AddScoped<IEmailRepository,EmailRepository>();
+            builder.Services.AddScoped<IIdentityService,IdentityService>();
+
             builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+
+            builder.Services.AddControllers(options =>
+            {
+                options.Filters.Add<ValidateModelFilter>();
+            });
+
+            
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(swagger =>
                 {
@@ -27,7 +37,7 @@ namespace IdentityWebApi
                         Description = "API documentation for managing and searching users"
                     });
                 }) ;
-            builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())

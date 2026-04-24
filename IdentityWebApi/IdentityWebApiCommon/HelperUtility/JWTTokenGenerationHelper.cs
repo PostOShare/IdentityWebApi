@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 
-namespace IdentityWebApi.HelperUtility
+namespace IdentityWebApiCommon.HelperUtility
 {
     public class JWTTokenGenerationHelper
     {

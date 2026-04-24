@@ -1,4 +1,4 @@
-﻿namespace IdentityWebApi.Models
+﻿namespace IdentityWebApiCommon.Models
 {
     public class OTPModel
     {

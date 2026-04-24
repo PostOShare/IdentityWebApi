@@ -1,15 +1,15 @@
-﻿using IdentityWebApi.Configuration;
+﻿using IdentityWebApiCommon.Configuration;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace IdentityWebApi.Services
+namespace IdentityWebApi.Repositories
 {
-    public class Email: IEmailService
+    public class EmailRepository: IEmailRepository
     {
         private readonly MailSettings _mailSettings;
 
-        public Email(IOptions<MailSettings> mailSettings)
+        public EmailRepository(IOptions<MailSettings> mailSettings)
         {
             _mailSettings = mailSettings.Value;
         }
@@ -24,7 +24,7 @@ namespace IdentityWebApi.Services
             {
                 using (MimeMessage emailMessage = new MimeMessage())
                 {
-                    var emailFrom = new MailboxAddress(_mailSettings.SenderName, _mailSettings.SenderEmail);
+                    var emailFrom = new MailboxAddress(_mailSettings.SenderName, _mailSettings.SenderEmailRepository);
                     emailMessage.From.Add(emailFrom);
                     var emailTo = new MailboxAddress("", email);
                     emailMessage.To.Add(emailTo);

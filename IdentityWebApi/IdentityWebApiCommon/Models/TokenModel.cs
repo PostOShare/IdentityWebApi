@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace IdentityWebApi.Models
+namespace IdentityWebApiCommon.Models
 {
     public class TokenModel
     {
