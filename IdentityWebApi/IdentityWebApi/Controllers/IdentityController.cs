@@ -22,6 +22,11 @@ namespace IdentityWebApi.Controllers
             _configuration = configuration;
         }
 
+        [HttpGet("live")]
+        public IActionResult Live()
+        {
+            return Ok("Identity API is live");
+        }
 
         /// <summary> 
         /// Checks whether a username/password exists
