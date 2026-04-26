@@ -103,14 +103,14 @@ curl -X 'POST' \
   ```
 
 - 400 - Invalid request, Invalid username and/or password (User does not exist)
-- 500 - An internal error occurred
+- 500 -
 
   ```json
   {
     "refreshToken": "",
     "accessToken": "",
     "result": false,
-    "error": "An internal error occurred"
+    "error": "<Specific error>"
   }
   ```
 
@@ -141,26 +141,15 @@ curl -X 'POST' \
 ### Responses
 
 - 201 - User created
-- 400 - Invalid request, The given account could not be registered (User exists)
-- 500 - An error occurred when adding user 
+- 400 - Invalid request, Please choose a different username and/or password (User exists)
+- 500 - 
 
   ```json
   {
     "refreshToken": "",
     "accessToken": "",
     "result": false,
-    "error": "An error occurred when adding user"
-  }
-  ```
-
-  500 - An internal error occurred
-  
-  ```json
-  {
-    "refreshToken": "",
-    "accessToken": "",
-    "result": false,
-    "error": "An internal error occurred"
+    "error": "<Specific error>"
   }
   ```
 
