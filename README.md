@@ -193,7 +193,7 @@ curl -X 'POST' \
     "refreshToken": "",
     "accessToken": "",
     "result": false,
-    "error": "An internal error occurred"
+    "error": "<Specific error>"
   }
   ```
 
@@ -227,7 +227,7 @@ curl -X 'POST' \
     "refreshToken": "",
     "accessToken": "",
     "result": false,
-    "error": "An internal error occurred"
+    "error": "<Specific error>"
   }
   ```
 
@@ -256,36 +256,14 @@ curl -X 'POST' \
 
 - 200 - OTP is valid
 - 400 - Invalid username, Invalid OTP, Invalid request
-- 500 - Cannot try more than maximum attempts
+- 500 - An internal error occurred 
 
   ```json
   {
     "refreshToken": "",
     "accessToken": "",
     "result": false,
-    "error": "Cannot try more than maximum attempts"
-  }
-  ```
-
-  500 - An internal error occurred 
-
-  ```json
-  {
-    "refreshToken": "",
-    "accessToken": "",
-    "result": false,
-    "error": "An internal error occurred"
-  }
-  ```
-
-  500 - An error occurred when updating the request attempt
-
-  ```json
-  {
-    "refreshToken": "",
-    "accessToken": "",
-    "result": false,
-    "error": "An error occurred when updating the request attempt"
+    "error": "<Specific error>"
   }
   ```
 
