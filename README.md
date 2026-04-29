@@ -185,7 +185,7 @@ curl -X 'POST' \
   }
   ```
 
-- 400 - Invalid username and/or email (User does not exist), Invalid request
+- 400 - Invalid username and/or password (User does not exist), Invalid request
 - 500 - An internal error occurred
 
   ```json
@@ -219,7 +219,7 @@ curl -X 'POST' \
 ### Responses
 
 - 201 - Created
-- 400 - Invalid username (User does not exist), Invalid request
+- 400 - Invalid username and/or password (User does not exist), Invalid request
 - 500 - An internal error occurred 
 
   ```json
@@ -255,7 +255,7 @@ curl -X 'POST' \
 ### Responses
 
 - 200 - OTP is valid
-- 400 - Invalid username, Invalid OTP, Invalid request
+- 400 - Invalid username and/or password, Invalid OTP, Invalid request
 - 500 - An internal error occurred 
 
   ```json
@@ -299,7 +299,7 @@ curl -X 'PATCH' \
   }
   ```
 
-- 400 - Invalid request, Invalid username
+- 400 - Invalid request, Invalid username and/or password
 - 500 - An internal error occurred 
 
   ```json
@@ -307,18 +307,7 @@ curl -X 'PATCH' \
     "refreshToken": "",
     "accessToken": "",
     "result": false,
-    "error": "An internal error occurred"
-  }
-  ```
-
-  500 - An error occurred when updating password
-  
-  ```json
-  {
-    "refreshToken": "",
-    "accessToken": "",
-    "result": false,
-    "error": "An error occurred when updating password"
+    "error": "<Specific error>"
   }
   ```
   
@@ -354,7 +343,7 @@ curl -X 'POST' \
   }
   ```
 
-- 400 - Invalid request
+- 400 - Invalid request, Invalid refresh token
 - 500 - An internal error occurred 
 
   ```json
@@ -362,7 +351,7 @@ curl -X 'POST' \
     "refreshToken": "",
     "accessToken": "",
     "result": false,
-    "error": "An internal error occurred"
+    "error": "<Specific error>"
   }
   ```
 
@@ -386,15 +375,26 @@ curl -X 'POST' \
 ### Responses
 
 - 200 - Access token is valid
-- 400 - Invalid request, Token is expired
 
-  400 - The token is invalid
+   **Sample Response**
+ 
+  ```json
+  {
+    "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5NjUwMzgwLCJleHAiOjE3MDk2NTEyODAsImlhdCI6MTcwOTY1MDM4MH0.D-JUimEo_6UDQvGf_ZggyXM_XoXEIaJ6R_RErMK0qa8",
+    "result": true,
+    "error": ""
+  }
+  ```
+  
+- 400 - Invalid request, Invalid access token, Token is expired
+- 500 - An internal error occurred 
 
   ```json
   {
     "refreshToken": "",
     "accessToken": "",
     "result": false,
-    "error": "The token is invalid"
+    "error": "<Specific error>"
   }
   ```
