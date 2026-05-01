@@ -8,7 +8,7 @@ GO
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='Login' and xtype='U')
 BEGIN
-	CREATE TABLE [Login]
+	CREATE TABLE [dbo].[Login]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
 	  ,[Key] NVARCHAR(300) NOT NULL
@@ -24,12 +24,12 @@ BEGIN
 	);
 
 	CREATE NONCLUSTERED INDEX IX_Login_Username   
-    ON [Login] (Username);   
+    ON [dbo].[Login] (Username);   
 END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='User' and xtype='U')
 BEGIN
-	CREATE TABLE [User]
+	CREATE TABLE [dbo].[User]
 	(
 	   [Id] INT IDENTITY(1,1)
 	  ,[Username] NVARCHAR(10) NOT NULL
@@ -50,12 +50,12 @@ BEGIN
 	); 
 
 	CREATE NONCLUSTERED INDEX IX_User_Username   
-    ON [User] (Username);
+    ON [dbo].[User] (Username);
 END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='OTPValidate' and xtype='U')
 BEGIN
-	CREATE TABLE [OTPValidate]
+	CREATE TABLE [dbo].[OTPValidate]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
 	  ,[OTP] NUMERIC(6,0)
@@ -72,12 +72,12 @@ BEGIN
 	); 
 
 	CREATE NONCLUSTERED INDEX IX_OTPValidate_Username   
-    ON [OTPValidate] (Username);
+    ON [dbo].[OTPValidate] (Username);
 END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='UserAuth' and xtype='U')
 BEGIN
-	CREATE TABLE [UserAuth]
+	CREATE TABLE [dbo].[UserAuth]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
 	  ,[Token] NVARCHAR(MAX)
@@ -94,12 +94,12 @@ BEGIN
 	); 
 
 	CREATE NONCLUSTERED INDEX IX_UserAuth_Username   
-    ON [UserAuth] (Username);
+    ON [dbo].[UserAuth] (Username);
 END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='User_PersonalDetails' and xtype='U')
 BEGIN
-	CREATE TABLE [User_PersonalDetails]
+	CREATE TABLE [dbo].[User_PersonalDetails]
 	(
 	   [Id] INT IDENTITY(1,1)
 	  ,[UserId] INT NOT NULL
@@ -120,5 +120,5 @@ BEGIN
 	);
 
 	CREATE NONCLUSTERED INDEX IX_User_PersonalDetails_UserId   
-    ON [User_PersonalDetails] (UserId);   
+    ON [dbo].[User_PersonalDetails] (UserId);   
 END
