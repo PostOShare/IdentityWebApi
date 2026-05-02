@@ -24,7 +24,7 @@ BEGIN
 	);
 
 	CREATE NONCLUSTERED INDEX IX_Login_Username   
-    ON [Login] (Username);   
+    ON [dbo].[Login] (Username);   
 END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='User' and xtype='U')
@@ -50,7 +50,7 @@ BEGIN
 	); 
 
 	CREATE NONCLUSTERED INDEX IX_User_Username   
-    ON [User] (Username);
+    ON [dbo].[User] (Username);
 END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='OTPValidate' and xtype='U')
@@ -72,7 +72,7 @@ BEGIN
 	); 
 
 	CREATE NONCLUSTERED INDEX IX_OTPValidate_Username   
-    ON [OTPValidate] (Username);
+    ON [dbo].[OTPValidate] (Username);
 END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='UserAuth' and xtype='U')
@@ -94,7 +94,7 @@ BEGIN
 	); 
 
 	CREATE NONCLUSTERED INDEX IX_UserAuth_Username   
-    ON [UserAuth] (Username);
+    ON [dbo].[UserAuth] (Username);
 END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='User_PersonalDetails' and xtype='U')
@@ -120,5 +120,32 @@ BEGIN
 	);
 
 	CREATE NONCLUSTERED INDEX IX_User_PersonalDetails_UserId   
-    ON [User_PersonalDetails] (UserId);   
+    ON [dbo].[User_PersonalDetails] (UserId);   
+END
+
+IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='User_EmploymentDetails' and xtype='U')
+BEGIN
+	CREATE TABLE [dbo].[User_EmploymentDetails]
+	(
+	   [Id] INT IDENTITY(1,1)
+	  ,[UserId] INT NOT NULL
+	  ,[EmployerName] NVARCHAR(300) NOT NULL
+      ,[EmployerCity] NVARCHAR(50)
+      ,[Role] NVARCHAR(20) NOT NULL
+      ,[Responsibilities] NVARCHAR(MAX)
+	  ,[StartDate] DATETIME2  
+	  ,[EndDate] DATETIME2
+	  ,[IsCurrentEmployer] BIT DEFAULT 0
+	  ,CONSTRAINT [SD_IdentityPM_User_EmploymentDetails] PRIMARY KEY CLUSTERED 
+	  (
+		[Id] ASC
+	  )
+	  ,CONSTRAINT FK_UserEmploymentDetails_User FOREIGN KEY (UserId)
+        REFERENCES [dbo].[User] (Id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+	);
+
+	CREATE NONCLUSTERED INDEX IX_User_EmploymentDetails_UserId   
+    ON [dbo].[User_EmploymentDetails] (UserId);   
 END
