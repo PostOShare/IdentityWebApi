@@ -149,3 +149,28 @@ BEGIN
 	CREATE NONCLUSTERED INDEX IX_User_EmploymentDetails_UserId   
     ON [dbo].[User_EmploymentDetails] (UserId);   
 END
+
+IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='User_LearnDetails' and xtype='U')
+BEGIN
+	CREATE TABLE [dbo].[User_LearnDetails]
+	(
+	   [Id] INT IDENTITY(1,1)
+	  ,[UserId] INT NOT NULL
+	  ,[InstitutionName] NVARCHAR(300) NOT NULL
+      ,[Award] NVARCHAR(50) NOT NULL
+      ,[StartYear] INT NOT NULL
+      ,[EndYear] INT NOT NULL
+	  ,[Major] NVARCHAR(100)
+	  ,CONSTRAINT [SD_IdentityPM_User_LearnDetails] PRIMARY KEY CLUSTERED 
+	  (
+		[Id] ASC
+	  )
+	  ,CONSTRAINT FK_UserLearnDetails_User FOREIGN KEY (UserId)
+        REFERENCES [dbo].[User] (Id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+	);
+
+	CREATE NONCLUSTERED INDEX IX_User_LearnDetails_UserId   
+    ON [dbo].[User_LearnDetails] (UserId);   
+END
