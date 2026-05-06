@@ -14,7 +14,7 @@ namespace IdentityWebApi
         {
             var builder = WebApplication.CreateBuilder(args);
            
-            builder.Services.AddDbContext<IdentityPmContext>(options => options.UseSqlServer(builder.Configuration.GetSection("ConnectionDB").Value));
+            builder.Services.AddDbContext<IdentityPMContext>(options => options.UseSqlServer(builder.Configuration.GetSection("ConnectionDB").Value));
             builder.Services.AddScoped<IEmailRepository,EmailRepository>();
             builder.Services.AddScoped<IIdentityService,IdentityService>();
 

@@ -15,11 +15,11 @@ namespace IdentityWebApi.Services
 {
     public class IdentityService: IIdentityService
     {
-        private readonly IdentityPmContext _context;
+        private readonly IdentityPMContext _context;
         private readonly IEmailRepository _mailService;
         private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(IdentityPmContext context, IEmailRepository mailService, ILogger<IdentityService> logger)
+        public IdentityService(IdentityPMContext context, IEmailRepository mailService, ILogger<IdentityService> logger)
         {
             _context = context;
             _mailService = mailService;
