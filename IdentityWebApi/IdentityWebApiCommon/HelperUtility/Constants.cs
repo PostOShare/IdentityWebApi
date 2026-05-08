@@ -11,6 +11,7 @@
         public const string ChangeCredentialsIdentityRoute = "change-credentials-identity";
         public const string GenerateAccessTokenIdentityRoute = "generate-accessToken";
         public const string ValidateAccessTokenIdentityRoute = "validate-accessToken";
+        public const string ListUserDataRoute = "list-userdata";
 
         //configuration
         public const string Subject = "PostOShare OTP";
@@ -23,5 +24,6 @@
         public const string InvalidAccessTokenError = "Invalid access token";
         public const string InvalidRefreshTokenError = "Invalid refresh token";
         public const string TokenExpiredError = "Token is expired";
+        public const string UsernameTokenError = "Invalid username and/or expired token";
     }
 }

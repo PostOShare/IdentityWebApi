@@ -9,7 +9,7 @@ namespace EntityORM.DatabaseEntity
         {
             UserEmploymentDetails = new HashSet<UserEmploymentDetail>();
             UserLearnDetails = new HashSet<UserLearnDetail>();
-            UserPersonalDetails = new HashSet<UserPersonalDetail>();
+            UserPersonalDetail = new UserPersonalDetail();
         }
 
         public int Id { get; set; }
@@ -24,6 +24,6 @@ namespace EntityORM.DatabaseEntity
         public virtual Login UsernameNavigation { get; set; } = null!;
         public virtual ICollection<UserEmploymentDetail> UserEmploymentDetails { get; set; }
         public virtual ICollection<UserLearnDetail> UserLearnDetails { get; set; }
-        public virtual ICollection<UserPersonalDetail> UserPersonalDetails { get; set; }
+        public virtual UserPersonalDetail UserPersonalDetail { get; set; }
     }
 }

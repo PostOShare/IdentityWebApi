@@ -1,7 +1,7 @@
 ﻿using EntityORM.DatabaseEntity;
 using System.ComponentModel.DataAnnotations;
 
-namespace IdentityWebApiCommon.Models.DTO.Request
+namespace IdentityWebApiCommon.Models.DTO
 {
     public class UserDTO
     {
@@ -17,5 +17,9 @@ namespace IdentityWebApiCommon.Models.DTO.Request
 
         [Required]
         public List<UserLearnDetail>? LearnDetail { get; set; }
+
+        public bool Result { get; set; }
+
+        public string Error { get; set; } = string.Empty;
     }
 }

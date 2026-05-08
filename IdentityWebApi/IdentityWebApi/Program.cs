@@ -14,11 +14,18 @@ namespace IdentityWebApi
         {
             var builder = WebApplication.CreateBuilder(args);
            
-            builder.Services.AddDbContext<IdentityPMContext>(options => options.UseSqlServer(builder.Configuration.GetSection("ConnectionDB").Value));
+            builder.Services.AddDbContext<IdentityPMContext>(options => options.UseSqlServer(builder.Configuration.GetSection("ConnectionDB").Value!));
             builder.Services.AddScoped<IEmailRepository,EmailRepository>();
             builder.Services.AddScoped<IIdentityService,IdentityService>();
+            builder.Services.AddScoped<IUserService, UserService>();
 
             builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+
+            builder.Services.AddHttpClient("InternalApi", client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration.GetSection("BaseUrl").Value!);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            });
 
             builder.Services.AddControllers(options =>
             {
