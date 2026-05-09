@@ -16,6 +16,7 @@ namespace EntityORM.DatabaseEntity
         public DateTime? EndDate { get; set; }
         public bool? IsCurrentEmployer { get; set; }
 
+        [JsonIgnore]
         public virtual User User { get; set; } = null!;
     }
 }

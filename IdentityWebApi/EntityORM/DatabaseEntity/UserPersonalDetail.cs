@@ -15,6 +15,7 @@ namespace EntityORM.DatabaseEntity
         public string? LanguageOne { get; set; }
         public string? LanguageTwo { get; set; }
 
+        [JsonIgnore]
         public virtual User User { get; set; } = null!;
     }
 }

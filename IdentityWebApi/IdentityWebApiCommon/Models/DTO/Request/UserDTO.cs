@@ -1,13 +1,19 @@
 ﻿using EntityORM.DatabaseEntity;
 using System.ComponentModel.DataAnnotations;
 
-namespace IdentityWebApiCommon.Models.DTO
+namespace IdentityWebApiCommon.Models.DTO.Request
 {
     public class UserDTO
     {
         [Required]
         [MaxLength(10)]
         public string Username { get; set; } = string.Empty;
+
+        [Required]
+        public string RefreshToken { get; set; }
+
+        [Required]
+        public string AccessToken { get; set; }
 
         [Required]
         public UserPersonalDetail? PersonalDetail { get; set; }
@@ -17,9 +23,5 @@ namespace IdentityWebApiCommon.Models.DTO
 
         [Required]
         public List<UserLearnDetail>? LearnDetail { get; set; }
-
-        public bool Result { get; set; }
-
-        public string Error { get; set; } = string.Empty;
     }
 }

@@ -14,6 +14,7 @@ namespace EntityORM.DatabaseEntity
         public int EndYear { get; set; }
         public string? Major { get; set; }
 
+        [JsonIgnore]
         public virtual User User { get; set; } = null!;
     }
 }
