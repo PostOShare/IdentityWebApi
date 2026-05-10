@@ -6,6 +6,6 @@ namespace IdentityWebApi.Services
     public interface IUserService
     {
         Task<IdentityWebApiCommon.Models.DTO.Response.UserDTO> ListUserData(ListUserDataRequestDTO listUserDataRequestDTO);
-        Task<BaseResponseDTO> SaveUserData(IdentityWebApiCommon.Models.DTO.Request.UserDTO saveUserDataRequest);
+        Task<BaseResponseDTO> SaveUserData(SaveUserRequestDTO saveUserDataRequest);
     }
 }

@@ -77,7 +77,7 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> SaveUserData([FromBody, Required] IdentityWebApiCommon.Models.DTO.Request.UserDTO saveUserDataRequest)
+        public async Task<IActionResult> SaveUserData([FromBody, Required] SaveUserRequestDTO saveUserDataRequest)
         {
             try
             {

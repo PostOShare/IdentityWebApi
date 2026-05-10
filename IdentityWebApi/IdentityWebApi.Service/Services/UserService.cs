@@ -5,6 +5,7 @@ using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System.Net.Http.Json;
 using UserDTO = IdentityWebApiCommon.Models.DTO.Response.UserDTO;
 
@@ -32,7 +33,7 @@ namespace IdentityWebApi.Services
 
             // Check whether the username and token exist and are valid
 
-            var valid = ValidateUserAndAccessToken(listUserDataRequestDTO.Username, listUserDataRequestDTO.RefreshToken, listUserDataRequestDTO.AccessToken);
+            var valid = await ValidateUserAndAccessToken(listUserDataRequestDTO.Username, listUserDataRequestDTO.RefreshToken, listUserDataRequestDTO.AccessToken);
 
             if (!valid)
             {
@@ -78,14 +79,14 @@ namespace IdentityWebApi.Services
             return userDto!;
         }
 
-        public async Task<BaseResponseDTO> SaveUserData(IdentityWebApiCommon.Models.DTO.Request.UserDTO saveUserDataRequest)
+        public async Task<BaseResponseDTO> SaveUserData(SaveUserRequestDTO saveUserDataRequest)
         {
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
                                    Constants.SaveUserDataRoute, saveUserDataRequest.Username);
 
             // Check whether the username and token exist and are valid
 
-            var valid = ValidateUserAndAccessToken(saveUserDataRequest.Username, saveUserDataRequest.RefreshToken, saveUserDataRequest.AccessToken);
+            var valid = await ValidateUserAndAccessToken(saveUserDataRequest.Username, saveUserDataRequest.RefreshToken!, saveUserDataRequest.AccessToken!);
 
             if (!valid)
             {
@@ -98,52 +99,66 @@ namespace IdentityWebApi.Services
 
             try
             {
-                //get userid from username
-                var user = await _context.Users.Where(u => u.Username == saveUserDataRequest.Username).FirstOrDefaultAsync();
-                var userId = user!.Id;
+                var user = await _context.Users
+                .Include(u => u.UserPersonalDetail)
+                .Include(u => u.UserEmploymentDetails)
+                .Include(u => u.UserLearnDetails)
+                .FirstOrDefaultAsync(u => u.Username == saveUserDataRequest.Username);
 
-                _context.UserPersonalDetails.Add(new UserPersonalDetail
+                if (saveUserDataRequest.PersonalDetail != null)
                 {
-                    UserId = userId,
-                    BirthDate = saveUserDataRequest.PersonalDetail!.BirthDate,
-                    Gender = saveUserDataRequest.PersonalDetail!.Gender,
-                    LanguageOne = saveUserDataRequest.PersonalDetail!.LanguageOne,
-                    LanguageTwo = saveUserDataRequest.PersonalDetail!.LanguageTwo,
-                    Location = saveUserDataRequest.PersonalDetail!.Location,
-                    Status = saveUserDataRequest.PersonalDetail!.Status
-                });
+                    if (user!.UserPersonalDetail == null)
+                    {
+                        user!.UserPersonalDetail = new UserPersonalDetail();
+                    }
+
+                    user.UserPersonalDetail.Location = saveUserDataRequest.PersonalDetail.Location;
+                    user.UserPersonalDetail.BirthDate = saveUserDataRequest.PersonalDetail.BirthDate;
+                    user.UserPersonalDetail.Status = saveUserDataRequest.PersonalDetail.Status;
+                    user.UserPersonalDetail.Gender = saveUserDataRequest.PersonalDetail.Gender;
+                    user.UserPersonalDetail.LanguageOne = saveUserDataRequest.PersonalDetail.LanguageOne;
+                    user.UserPersonalDetail.LanguageTwo = saveUserDataRequest.PersonalDetail.LanguageTwo;
+                }
 
                 if (saveUserDataRequest.EmploymentDetail != null)
                 {
-                    foreach (var employmentDetail in saveUserDataRequest.EmploymentDetail)
+                    if (user!.UserEmploymentDetails?.Any() == true)
                     {
-                        _context.UserEmploymentDetails.Add(new UserEmploymentDetail
-                        {
-                            UserId = userId,
-                            EmployerName = employmentDetail.EmployerName,
-                            EmployerCity = employmentDetail.EmployerCity,
-                            IsCurrentEmployer = employmentDetail.IsCurrentEmployer,
-                            Role = employmentDetail.Role
-                        });
+                        _context.UserEmploymentDetails.RemoveRange(user.UserEmploymentDetails);
                     }
+
+                    user.UserEmploymentDetails = saveUserDataRequest.EmploymentDetail.Select(e => new UserEmploymentDetail
+                    {
+                        UserId = user.Id,
+                        EmployerName = e.EmployerName ?? string.Empty,
+                        EmployerCity = e.EmployerCity,
+                        IsCurrentEmployer = e.IsCurrentEmployer,
+                        Role = e.Role ?? string.Empty,
+                        Responsibilities = null,
+                        StartDate = null,
+                        EndDate = null
+                    }).ToList();
                 }
 
                 if (saveUserDataRequest.LearnDetail != null)
                 {
-                    foreach (var learnDetail in saveUserDataRequest.LearnDetail)
+                    if (user!.UserLearnDetails?.Any() == true)
                     {
-                        _context.UserLearnDetails.Add(new UserLearnDetail
-                        {
-                            UserId = userId,
-                            InstitutionName = learnDetail.InstitutionName,
-                            Major = learnDetail.Major,
-                            Award = learnDetail.Award,
-                            StartYear = learnDetail.StartYear,
-                            EndYear = learnDetail.EndYear
-                        });
+                        _context.UserLearnDetails.RemoveRange(user.UserLearnDetails);
                     }
+
+                    user.UserLearnDetails = saveUserDataRequest.LearnDetail.Select(l => new UserLearnDetail
+                    {
+                        UserId = user.Id,
+                        InstitutionName = l.InstitutionName ?? string.Empty,
+                        Award = l.Award ?? string.Empty,
+                        StartYear = 0,
+                        EndYear = 0,
+                        Major = l.Major
+                    }).ToList();
                 }
 
+                _context.Update(user!);
                 _context.SaveChanges();
             }
             catch(DbUpdateException ex)
@@ -159,7 +174,7 @@ namespace IdentityWebApi.Services
             return new BaseResponseDTO { Error = string.Empty, Result = true };
         }
 
-        public bool ValidateUserAndAccessToken(string username, string refreshToken, string accessToken)
+        public async Task<bool> ValidateUserAndAccessToken(string username, string refreshToken, string accessToken)
         {
             // Check whether the username and token exist
             UserAuth? current = null;
