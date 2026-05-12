@@ -180,8 +180,8 @@ namespace EntityORM.DatabaseEntity
                 entity.Property(e => e.Status).HasMaxLength(10);
 
                 entity.HasOne(d => d.User)
-                    .WithMany(p => p.UserPersonalDetails)
-                    .HasForeignKey(d => d.UserId)
+                    .WithOne(p => p.UserPersonalDetail)
+                    .HasForeignKey<UserPersonalDetail>(d => d.UserId)
                     .HasConstraintName("FK_UserPersonalDetails_User");
             });
 

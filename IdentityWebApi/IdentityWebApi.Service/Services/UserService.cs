@@ -1,0 +1,226 @@
+﻿using EntityORM.DatabaseEntity;
+using IdentityWebApiCommon.HelperUtility;
+using IdentityWebApiCommon.Models.DTO.Request;
+using IdentityWebApiCommon.Models.DTO.Response;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Ocsp;
+using System.Net.Http.Json;
+using UserDTO = IdentityWebApiCommon.Models.DTO.Response.UserDTO;
+
+namespace IdentityWebApi.Services
+{
+    public class UserService : IUserService
+    {
+        private readonly IdentityPMContext _context;
+        private readonly ILogger<UserService> _logger;
+        public IConfiguration _configuration;
+        private readonly IHttpClientFactory _clientFactory;
+
+        public UserService(IdentityPMContext context, ILogger<UserService> logger, IConfiguration configuration, IHttpClientFactory clientFactory)
+        {
+            _context = context;
+            _logger = logger;
+            _configuration = configuration;
+            _clientFactory = clientFactory;
+        }
+
+        public async Task<UserDTO> ListUserData(ListUserDataRequestDTO listUserDataRequestDTO)
+        {
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
+                                   Constants.ListUserDataRoute, listUserDataRequestDTO.Username);
+
+            // Check whether the username and token exist and are valid
+
+            var valid = await ValidateUserAndAccessToken(listUserDataRequestDTO.Username, listUserDataRequestDTO.RefreshToken, listUserDataRequestDTO.AccessToken);
+
+            if (!valid)
+            {
+                return new UserDTO
+                {
+                    Result = false,
+                    Error = Constants.UsernameTokenError
+                };
+            }
+
+            var userDto = await _context.Users
+                .Where(u => u.Username == listUserDataRequestDTO.Username)
+                .Select(u => new UserDTO
+                {
+                    Username = u.Username,
+                    PersonalDetail = new PersonalDetailDTO
+                    {
+                        BirthDate = u.UserPersonalDetail.BirthDate,
+                        Gender = u.UserPersonalDetail.Gender,
+                        LanguageOne = u.UserPersonalDetail.LanguageOne,
+                        LanguageTwo = u.UserPersonalDetail.LanguageTwo,
+                        Location = u.UserPersonalDetail.Location,
+                        Status = u.UserPersonalDetail.Status
+                    },
+                    EmploymentDetail = u.UserEmploymentDetails.Select(e => new EmploymentDetailDTO
+                    {
+                        EmployerName = e.EmployerName,
+                        EmployerCity = e.EmployerCity,
+                        IsCurrentEmployer = e.IsCurrentEmployer,
+                        Role = e.Role
+                    }).ToList(),
+                    LearnDetail = u.UserLearnDetails.Select(l => new LearnDetailDTO
+                    {
+                        InstitutionName = l.InstitutionName,
+                        Major = l.Major,
+                        Award = l.Award
+                    }).ToList(),
+                    Result = true,
+                    Error = string.Empty
+                })
+                .FirstOrDefaultAsync();
+
+            return userDto!;
+        }
+
+        public async Task<BaseResponseDTO> SaveUserData(SaveUserRequestDTO saveUserDataRequest)
+        {
+            _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
+                                   Constants.SaveUserDataRoute, saveUserDataRequest.Username);
+
+            // Check whether the username and token exist and are valid
+
+            var valid = await ValidateUserAndAccessToken(saveUserDataRequest.Username, saveUserDataRequest.RefreshToken!, saveUserDataRequest.AccessToken!);
+
+            if (!valid)
+            {
+                return new BaseResponseDTO
+                {
+                    Result = false,
+                    Error = Constants.UsernameTokenError
+                };
+            }
+
+            try
+            {
+                var user = await _context.Users
+                .Include(u => u.UserPersonalDetail)
+                .Include(u => u.UserEmploymentDetails)
+                .Include(u => u.UserLearnDetails)
+                .FirstOrDefaultAsync(u => u.Username == saveUserDataRequest.Username);
+
+                if (saveUserDataRequest.PersonalDetail != null)
+                {
+                    if (user!.UserPersonalDetail == null)
+                    {
+                        user!.UserPersonalDetail = new UserPersonalDetail();
+                    }
+
+                    user.UserPersonalDetail.Location = saveUserDataRequest.PersonalDetail.Location;
+                    user.UserPersonalDetail.BirthDate = saveUserDataRequest.PersonalDetail.BirthDate;
+                    user.UserPersonalDetail.Status = saveUserDataRequest.PersonalDetail.Status;
+                    user.UserPersonalDetail.Gender = saveUserDataRequest.PersonalDetail.Gender;
+                    user.UserPersonalDetail.LanguageOne = saveUserDataRequest.PersonalDetail.LanguageOne;
+                    user.UserPersonalDetail.LanguageTwo = saveUserDataRequest.PersonalDetail.LanguageTwo;
+                }
+
+                if (saveUserDataRequest.EmploymentDetail != null)
+                {
+                    if (user!.UserEmploymentDetails?.Any() == true)
+                    {
+                        _context.UserEmploymentDetails.RemoveRange(user.UserEmploymentDetails);
+                    }
+
+                    user.UserEmploymentDetails = saveUserDataRequest.EmploymentDetail.Select(e => new UserEmploymentDetail
+                    {
+                        UserId = user.Id,
+                        EmployerName = e.EmployerName ?? string.Empty,
+                        EmployerCity = e.EmployerCity,
+                        IsCurrentEmployer = e.IsCurrentEmployer,
+                        Role = e.Role ?? string.Empty,
+                        Responsibilities = null,
+                        StartDate = null,
+                        EndDate = null
+                    }).ToList();
+                }
+
+                if (saveUserDataRequest.LearnDetail != null)
+                {
+                    if (user!.UserLearnDetails?.Any() == true)
+                    {
+                        _context.UserLearnDetails.RemoveRange(user.UserLearnDetails);
+                    }
+
+                    user.UserLearnDetails = saveUserDataRequest.LearnDetail.Select(l => new UserLearnDetail
+                    {
+                        UserId = user.Id,
+                        InstitutionName = l.InstitutionName ?? string.Empty,
+                        Award = l.Award ?? string.Empty,
+                        StartYear = 0,
+                        EndYear = 0,
+                        Major = l.Major
+                    }).ToList();
+                }
+
+                _context.Update(user!);
+                _context.SaveChanges();
+            }
+            catch(DbUpdateException ex)
+            {
+                _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
+                                   Constants.SaveUserDataRoute, saveUserDataRequest.Username, ex.Message);
+                throw;
+            }
+
+            _logger.LogInformation("Route: {method}, User: {username} |  User data was saved successfully",
+                                   Constants.SaveUserDataRoute, saveUserDataRequest.Username);
+
+            return new BaseResponseDTO { Error = string.Empty, Result = true };
+        }
+
+        public async Task<bool> ValidateUserAndAccessToken(string username, string refreshToken, string accessToken)
+        {
+            // Check whether the username and token exist
+            UserAuth? current = null;
+            try
+            {
+                current = _context.UserAuths.Where(user => user.Username.Equals(username) &&
+                                                         user.Token!.Equals(refreshToken))
+                                               .FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                throw;
+            }
+
+            if (current == null)
+            {
+                _logger.LogError("Route: {method}, User: {username} | Invalid username and/or expired token",
+                                 Constants.ListUserDataRoute, username);
+                return false;
+            }
+
+            //validate access token
+            var validateAccessTokenEndpointUrl = $"{_configuration["IdentityAPIUrl"]}/{Constants.ValidateAccessTokenIdentityRoute}";
+            var valid = false;
+            try
+            {
+                var client = _clientFactory.CreateClient("InternalApi");
+                var data = new CreateTokenRequestDTO { AccessToken = accessToken, RefreshToken = refreshToken };
+                var response = client.PostAsJsonAsync(validateAccessTokenEndpointUrl, data).Result;
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = response.Content.ReadFromJsonAsync<AuthResultDTO>().Result;
+                    if (result!.Result)
+                    {
+                        valid = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while calling Identity API {exception}", ex.Message);
+                throw;
+            }
+
+            return valid;
+        }
+    }
+}

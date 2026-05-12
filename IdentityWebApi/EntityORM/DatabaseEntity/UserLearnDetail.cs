@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Text.Json.Serialization;
 
 namespace EntityORM.DatabaseEntity
 {
     public partial class UserLearnDetail
     {
+        [JsonIgnore]
         public int Id { get; set; }
+        [JsonIgnore]
         public int UserId { get; set; }
         public string InstitutionName { get; set; } = null!;
         public string Award { get; set; } = null!;
@@ -13,6 +14,7 @@ namespace EntityORM.DatabaseEntity
         public int EndYear { get; set; }
         public string? Major { get; set; }
 
+        [JsonIgnore]
         public virtual User User { get; set; } = null!;
     }
 }

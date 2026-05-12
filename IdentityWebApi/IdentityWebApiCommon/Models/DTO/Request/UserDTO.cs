@@ -10,6 +10,12 @@ namespace IdentityWebApiCommon.Models.DTO.Request
         public string Username { get; set; } = string.Empty;
 
         [Required]
+        public string RefreshToken { get; set; }
+
+        [Required]
+        public string AccessToken { get; set; }
+
+        [Required]
         public UserPersonalDetail? PersonalDetail { get; set; }
 
         [Required]
