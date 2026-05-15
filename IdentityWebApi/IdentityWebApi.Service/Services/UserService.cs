@@ -99,18 +99,27 @@ namespace IdentityWebApi.Services
 
             try
             {
-                var user = await _context.Users
-                .Include(u => u.UserPersonalDetail)
-                .Include(u => u.UserEmploymentDetails)
-                .Include(u => u.UserLearnDetails)
-                .FirstOrDefaultAsync(u => u.Username == saveUserDataRequest.Username);
+                User? user = await _context.Users
+                                           .FirstOrDefaultAsync(u => u.Username == saveUserDataRequest.Username);
+
+                if (user == null)
+                {
+                    return new BaseResponseDTO { Result = false, Error = "User not found." };
+                }
+
+                if (user.UserPersonalDetail == null)
+                {
+                    user.UserPersonalDetail = new UserPersonalDetail();
+                }
+              
+                if (user.UserLearnDetails == null)
+                {
+                    user.UserLearnDetails = new List<UserLearnDetail>();
+                }
 
                 if (saveUserDataRequest.PersonalDetail != null)
                 {
-                    if (user!.UserPersonalDetail == null)
-                    {
-                        user!.UserPersonalDetail = new UserPersonalDetail();
-                    }
+                    user!.UserPersonalDetail = new UserPersonalDetail();
 
                     user.UserPersonalDetail.Location = saveUserDataRequest.PersonalDetail.Location;
                     user.UserPersonalDetail.BirthDate = saveUserDataRequest.PersonalDetail.BirthDate;
@@ -119,47 +128,55 @@ namespace IdentityWebApi.Services
                     user.UserPersonalDetail.LanguageOne = saveUserDataRequest.PersonalDetail.LanguageOne;
                     user.UserPersonalDetail.LanguageTwo = saveUserDataRequest.PersonalDetail.LanguageTwo;
                 }
-
+                
                 if (saveUserDataRequest.EmploymentDetail != null)
                 {
-                    if (user!.UserEmploymentDetails?.Any() == true)
+                    if (user.UserEmploymentDetails == null)
                     {
-                        _context.UserEmploymentDetails.RemoveRange(user.UserEmploymentDetails);
+                        user.UserEmploymentDetails = new List<UserEmploymentDetail>();
                     }
 
-                    user.UserEmploymentDetails = saveUserDataRequest.EmploymentDetail.Select(e => new UserEmploymentDetail
+                    foreach(var e in saveUserDataRequest.EmploymentDetail)
                     {
-                        UserId = user.Id,
-                        EmployerName = e.EmployerName ?? string.Empty,
-                        EmployerCity = e.EmployerCity,
-                        IsCurrentEmployer = e.IsCurrentEmployer,
-                        Role = e.Role ?? string.Empty,
-                        Responsibilities = null,
-                        StartDate = null,
-                        EndDate = null
-                    }).ToList();
+                        var employmentDetail = new UserEmploymentDetail
+                        {
+                            UserId = user.Id,
+                            EmployerName = e.EmployerName ?? string.Empty,
+                            EmployerCity = e.EmployerCity,
+                            IsCurrentEmployer = e.IsCurrentEmployer,
+                            Role = e.Role ?? string.Empty,
+                            Responsibilities = null,
+                            StartDate = null,
+                            EndDate = null
+                        };
+                        user.UserEmploymentDetails.Add(employmentDetail);
+                    }
                 }
-
+                
                 if (saveUserDataRequest.LearnDetail != null)
                 {
-                    if (user!.UserLearnDetails?.Any() == true)
+                    if (user.UserLearnDetails == null)
                     {
-                        _context.UserLearnDetails.RemoveRange(user.UserLearnDetails);
+                        user.UserLearnDetails = new List<UserLearnDetail>();
                     }
 
-                    user.UserLearnDetails = saveUserDataRequest.LearnDetail.Select(l => new UserLearnDetail
+                    foreach (var l in saveUserDataRequest.LearnDetail)
                     {
-                        UserId = user.Id,
-                        InstitutionName = l.InstitutionName ?? string.Empty,
-                        Award = l.Award ?? string.Empty,
-                        StartYear = 0,
-                        EndYear = 0,
-                        Major = l.Major
-                    }).ToList();
+                        var learnDetail = new UserLearnDetail
+                        {
+                            UserId = user.Id,
+                            InstitutionName = l.InstitutionName ?? string.Empty,
+                            Award = l.Award ?? string.Empty,
+                            StartYear = 0,
+                            EndYear = 0,
+                            Major = l.Major
+                        };
+                        user.UserLearnDetails.Add(learnDetail);
+                    }                   
                 }
 
                 _context.Update(user!);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
             catch(DbUpdateException ex)
             {
@@ -180,9 +197,9 @@ namespace IdentityWebApi.Services
             UserAuth? current = null;
             try
             {
-                current = _context.UserAuths.Where(user => user.Username.Equals(username) &&
+                current = await _context.UserAuths.Where(user => user.Username.Equals(username) &&
                                                          user.Token!.Equals(refreshToken))
-                                               .FirstOrDefault();
+                                                  .FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -204,10 +221,10 @@ namespace IdentityWebApi.Services
             {
                 var client = _clientFactory.CreateClient("InternalApi");
                 var data = new CreateTokenRequestDTO { AccessToken = accessToken, RefreshToken = refreshToken };
-                var response = client.PostAsJsonAsync(validateAccessTokenEndpointUrl, data).Result;
+                using var response = await client.PostAsJsonAsync(validateAccessTokenEndpointUrl, data);
                 if (response.IsSuccessStatusCode)
                 {
-                    var result = response.Content.ReadFromJsonAsync<AuthResultDTO>().Result;
+                    var result = await response.Content.ReadFromJsonAsync<AuthResultDTO>();
                     if (result!.Result)
                     {
                         valid = true;
