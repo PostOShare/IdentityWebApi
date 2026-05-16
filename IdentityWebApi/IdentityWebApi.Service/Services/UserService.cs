@@ -5,7 +5,6 @@ using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Asn1.Ocsp;
 using System.Net.Http.Json;
 using UserDTO = IdentityWebApiCommon.Models.DTO.Response.UserDTO;
 

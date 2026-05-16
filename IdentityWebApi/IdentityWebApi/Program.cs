@@ -8,7 +8,6 @@ using IdentityWebApiCommon.Configuration;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace IdentityWebApi
 {
@@ -18,7 +17,7 @@ namespace IdentityWebApi
         {
             var builder = WebApplication.CreateBuilder(args);
            
-            builder.Services.AddDbContext<IdentityPMContext>(options => options.UseSqlServer(builder.Configuration.GetSection("ConnectionDB").Value!));
+            builder.Services.AddDbContext<IdentityPMContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionDB")!));
             builder.Services.AddScoped<IEmailRepository,EmailRepository>();
             builder.Services.AddScoped<IIdentityService,IdentityService>();
             builder.Services.AddScoped<IUserService, UserService>();

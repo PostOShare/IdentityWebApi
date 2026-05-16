@@ -24,9 +24,7 @@ namespace EntityORM.DatabaseEntity
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            var builder = new ConfigurationBuilder();
-            builder.AddJsonFile("appsettings.json");
-            optionsBuilder.UseSqlServer(builder.Build().GetSection("ConnectionDB").Value);
+
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
