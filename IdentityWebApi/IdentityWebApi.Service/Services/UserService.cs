@@ -68,7 +68,9 @@ namespace IdentityWebApi.Services
                     {
                         InstitutionName = l.InstitutionName,
                         Major = l.Major,
-                        Award = l.Award
+                        Award = l.Award,
+                        StartYear = l.StartYear,
+                        EndYear = l.EndYear
                     }).ToList(),
                     Result = true,
                     Error = string.Empty
@@ -166,8 +168,8 @@ namespace IdentityWebApi.Services
                             UserId = user.Id,
                             InstitutionName = l.InstitutionName ?? string.Empty,
                             Award = l.Award ?? string.Empty,
-                            StartYear = 0,
-                            EndYear = 0,
+                            StartYear = l.StartYear,
+                            EndYear = l.EndYear,
                             Major = l.Major
                         };
                         user.UserLearnDetails.Add(learnDetail);
