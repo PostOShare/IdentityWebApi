@@ -98,5 +98,41 @@ namespace IdentityWebApi.Controllers
                                   });
             }
         }
+
+        /// <summary> 
+        /// Saves/Updates user information based on username and token
+        /// </summary>
+        /// <returns> 
+        /// A ObjectResult whether the user information was successfully saved/Updated (Status Created),
+        /// data is invalid (Status BadRequest), or an internal error occurred 
+        /// (Status InternalServerError)
+        /// </returns>
+        [HttpPost]
+        [Route("upsert-userdata")]
+        [SwaggerOperation("Saves/Updates user information based on username and token")]
+        [SwaggerResponse((int)HttpStatusCode.Created)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
+        public async Task<IActionResult> UpsertUserData([FromBody, Required] SaveUserRequestDTO saveUserDataRequest)
+        {
+            try
+            {
+                var response = await _userService.UpsertUserData(saveUserDataRequest);
+
+                if (response.Error.Equals(Constants.UsernameTokenError))
+                    return BadRequest(Constants.UsernameTokenError);
+                else
+                    return Created(string.Empty, response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                                  new IdentityWebApiCommon.Models.DTO.Response.UserDTO
+                                  {
+                                      Error = ex.Message,
+                                      Result = false
+                                  });
+            }
+        }
     }
 }
