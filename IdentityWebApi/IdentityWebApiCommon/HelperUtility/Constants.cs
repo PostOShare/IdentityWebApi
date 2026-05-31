@@ -12,7 +12,7 @@
         public const string GenerateAccessTokenIdentityRoute = "generate-accessToken";
         public const string ValidateAccessTokenIdentityRoute = "validate-accessToken";
         public const string ListUserDataRoute = "list-userdata";
-        public const string SaveUserDataRoute = "save-userdata";
+        public const string UpsertUserDataRoute = "upsert-userdata";
 
         //configuration
         public const string Subject = "PostOShare OTP";

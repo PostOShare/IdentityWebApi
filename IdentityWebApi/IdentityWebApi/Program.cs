@@ -1,11 +1,8 @@
-using Azure.Core;
-using Azure.Identity;
 using EntityORM.DatabaseEntity;
 using IdentityWebApi.ApiFilters;
 using IdentityWebApi.Repositories;
 using IdentityWebApi.Services;
 using IdentityWebApiCommon.Configuration;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -33,7 +30,11 @@ namespace IdentityWebApi
             builder.Services.AddControllers(options =>
             {
                 options.Filters.Add<ValidateModelFilter>();
-            });
+            }).AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.DefaultIgnoreCondition =
+                    System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+            }); ;
 
             
             builder.Services.AddEndpointsApiExplorer();

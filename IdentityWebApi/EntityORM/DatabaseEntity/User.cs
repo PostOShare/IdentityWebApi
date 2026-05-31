@@ -2,12 +2,12 @@
 {
     public partial class User
     {
-        /*public User()
+        public User()
         {
             UserEmploymentDetails = new HashSet<UserEmploymentDetail>();
             UserLearnDetails = new HashSet<UserLearnDetail>();
-            UserPersonalDetail = new UserPersonalDetail();
-        }*/
+            UserPersonalDetails = new UserPersonalDetail();
+        }
 
         public int Id { get; set; }
         public string Username { get; set; } = null!;
@@ -19,8 +19,8 @@
         public string? Phone { get; set; }
 
         public virtual Login UsernameNavigation { get; set; } = null!;
-        public virtual ICollection<UserEmploymentDetail>? UserEmploymentDetails { get; set; }
-        public virtual ICollection<UserLearnDetail>? UserLearnDetails { get; set; }
-        public virtual UserPersonalDetail? UserPersonalDetail { get; set; }
+        public virtual ICollection<UserEmploymentDetail> UserEmploymentDetails { get; set; }
+        public virtual ICollection<UserLearnDetail> UserLearnDetails { get; set; }
+        public virtual UserPersonalDetail UserPersonalDetails { get; set; }
     }
 }
