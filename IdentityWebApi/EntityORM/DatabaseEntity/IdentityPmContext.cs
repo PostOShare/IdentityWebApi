@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace EntityORM.DatabaseEntity
 {
@@ -24,7 +26,11 @@ namespace EntityORM.DatabaseEntity
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-
+            if (!optionsBuilder.IsConfigured)
+            {
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+                optionsBuilder.UseSqlServer("Server=LAPTOP-01RB8N41\\MSSQL2;Database=IdentityPM;Trusted_Connection=True;TrustServerCertificate=True;");
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -135,6 +141,12 @@ namespace EntityORM.DatabaseEntity
 
                 entity.Property(e => e.Role).HasMaxLength(20);
 
+                entity.Property(e => e.Responsibilities);
+
+                entity.Property(e => e.StartDate).HasColumnType("datetime");
+
+                entity.Property(e => e.EndDate).HasColumnType("datetime");
+
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.UserEmploymentDetails)
                     .HasForeignKey(d => d.UserId)
@@ -178,7 +190,7 @@ namespace EntityORM.DatabaseEntity
                 entity.Property(e => e.Status).HasMaxLength(10);
 
                 entity.HasOne(d => d.User)
-                    .WithOne(p => p.UserPersonalDetail)
+                    .WithOne(p => p.UserPersonalDetails)
                     .HasForeignKey<UserPersonalDetail>(d => d.UserId)
                     .HasConstraintName("FK_UserPersonalDetails_User");
             });

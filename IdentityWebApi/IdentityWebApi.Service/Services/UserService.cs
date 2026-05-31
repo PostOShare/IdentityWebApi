@@ -53,12 +53,12 @@ namespace IdentityWebApi.Services
                     Username = u.Username,
                     PersonalDetail = new PersonalDetailDTO
                     {
-                        BirthDate = u.UserPersonalDetail.BirthDate,
-                        Gender = u.UserPersonalDetail.Gender,
-                        LanguageOne = u.UserPersonalDetail.LanguageOne,
-                        LanguageTwo = u.UserPersonalDetail.LanguageTwo,
-                        Location = u.UserPersonalDetail.Location,
-                        Status = u.UserPersonalDetail.Status
+                        BirthDate = u.UserPersonalDetails.BirthDate,
+                        Gender = u.UserPersonalDetails.Gender,
+                        LanguageOne = u.UserPersonalDetails.LanguageOne,
+                        LanguageTwo = u.UserPersonalDetails.LanguageTwo,
+                        Location = u.UserPersonalDetails.Location,
+                        Status = u.UserPersonalDetails.Status
                     },
                     EmploymentDetail = u.UserEmploymentDetails.Select(e => new EmploymentDetailDTO
                     {
@@ -86,121 +86,7 @@ namespace IdentityWebApi.Services
             return userDto!;
         }
 
-        public async Task<BaseResponseDTO> SaveUserData(SaveUserRequestDTO saveUserDataRequest)
-        {
-            _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
-                                   Constants.SaveUserDataRoute, saveUserDataRequest.Username);
-
-            // Check whether the username and token exist and are valid
-
-            var valid = await ValidateUserAndAccessToken(saveUserDataRequest.Username, saveUserDataRequest.RefreshToken!, saveUserDataRequest.AccessToken!);
-
-            if (!valid)
-            {
-                _logger.LogInformation("Route: {method}, User: {username} | User is not available",
-                                   Constants.SaveUserDataRoute, saveUserDataRequest.Username);
-
-                return new BaseResponseDTO
-                {
-                    Result = false,
-                    Error = Constants.UsernameTokenError
-                };
-            }
-
-            try
-            {
-                User? user = await _context.Users
-                                           .FirstOrDefaultAsync(u => u.Username == saveUserDataRequest.Username);
-
-                if (user == null)
-                {
-                    return new BaseResponseDTO { Result = false, Error = "User not found." };
-                }
-
-                if (user.UserPersonalDetail == null)
-                {
-                    user.UserPersonalDetail = new UserPersonalDetail();
-                }
-
-                if (user.UserLearnDetails == null)
-                {
-                    user.UserLearnDetails = new List<UserLearnDetail>();
-                }
-
-                if (saveUserDataRequest.PersonalDetail != null)
-                {
-                    user!.UserPersonalDetail = new UserPersonalDetail();
-
-                    user.UserPersonalDetail.Location = saveUserDataRequest.PersonalDetail.Location;
-                    user.UserPersonalDetail.BirthDate = saveUserDataRequest.PersonalDetail.BirthDate;
-                    user.UserPersonalDetail.Status = saveUserDataRequest.PersonalDetail.Status;
-                    user.UserPersonalDetail.Gender = saveUserDataRequest.PersonalDetail.Gender;
-                    user.UserPersonalDetail.LanguageOne = saveUserDataRequest.PersonalDetail.LanguageOne;
-                    user.UserPersonalDetail.LanguageTwo = saveUserDataRequest.PersonalDetail.LanguageTwo;
-                }
-
-                if (saveUserDataRequest.EmploymentDetail != null)
-                {
-                    if (user.UserEmploymentDetails == null)
-                    {
-                        user.UserEmploymentDetails = new List<UserEmploymentDetail>();
-                    }
-
-                    foreach (var e in saveUserDataRequest.EmploymentDetail)
-                    {
-                        var employmentDetail = new UserEmploymentDetail
-                        {
-                            EmployerName = e.EmployerName ?? string.Empty,
-                            EmployerCity = e.EmployerCity,
-                            IsCurrentEmployer = e.IsCurrentEmployer,
-                            Role = e.Role ?? string.Empty,
-                            Responsibilities = null,
-                            StartDate = null,
-                            EndDate = null
-                        };
-                        user.UserEmploymentDetails.Add(employmentDetail);
-                    }
-                }
-
-                if (saveUserDataRequest.LearnDetail != null)
-                {
-                    if (user.UserLearnDetails == null)
-                    {
-                        user.UserLearnDetails = new List<UserLearnDetail>();
-                    }
-
-                    foreach (var l in saveUserDataRequest.LearnDetail)
-                    {
-                        var learnDetail = new UserLearnDetail
-                        {
-                            InstitutionName = l.InstitutionName ?? string.Empty,
-                            Award = l.Award ?? string.Empty,
-                            StartYear = l.StartYear,
-                            EndYear = l.EndYear,
-                            Major = l.Major
-                        };
-                        user.UserLearnDetails.Add(learnDetail);
-                    }
-                }
-
-                _logger.LogInformation("Route: {method}, User: {username} | Saving user's data",
-                                   Constants.SaveUserDataRoute, saveUserDataRequest.Username);
-
-                _context.Update(user!);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
-                                   Constants.SaveUserDataRoute, saveUserDataRequest.Username, ex.Message);
-                throw;
-            }
-
-            _logger.LogInformation("Route: {method}, User: {username} |  User data was saved successfully",
-                                   Constants.SaveUserDataRoute, saveUserDataRequest.Username);
-
-            return new BaseResponseDTO { Error = string.Empty, Result = true };
-        }
+        
 
         public async Task<bool> ValidateUserAndAccessToken(string username, string refreshToken, string accessToken)
         {

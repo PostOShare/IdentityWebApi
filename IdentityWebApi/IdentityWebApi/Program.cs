@@ -1,11 +1,8 @@
-using Azure.Core;
-using Azure.Identity;
 using EntityORM.DatabaseEntity;
 using IdentityWebApi.ApiFilters;
 using IdentityWebApi.Repositories;
 using IdentityWebApi.Services;
 using IdentityWebApiCommon.Configuration;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
