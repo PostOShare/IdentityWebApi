@@ -65,7 +65,10 @@ namespace IdentityWebApi.Services
                         EmployerName = e.EmployerName,
                         EmployerCity = e.EmployerCity,
                         IsCurrentEmployer = e.IsCurrentEmployer,
-                        Role = e.Role
+                        Role = e.Role,
+                        Responsibilities = e.Responsibilities,
+                        StartDate = e.StartDate,
+                        EndDate = e.EndDate
                     }).ToList(),
                     LearnDetail = u.UserLearnDetails.Select(l => new LearnDetailDTO
                     {
