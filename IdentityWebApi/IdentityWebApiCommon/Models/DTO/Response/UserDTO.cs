@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace IdentityWebApiCommon.Models.DTO.Response
 {
     public class UserDTO

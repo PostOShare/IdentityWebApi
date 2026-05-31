@@ -33,7 +33,11 @@ namespace IdentityWebApi
             builder.Services.AddControllers(options =>
             {
                 options.Filters.Add<ValidateModelFilter>();
-            });
+            }).AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.DefaultIgnoreCondition =
+                    System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+            }); ;
 
             
             builder.Services.AddEndpointsApiExplorer();

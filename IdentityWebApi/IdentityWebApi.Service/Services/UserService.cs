@@ -150,7 +150,6 @@ namespace IdentityWebApi.Services
                     {
                         var employmentDetail = new UserEmploymentDetail
                         {
-                            UserId = user.Id,
                             EmployerName = e.EmployerName ?? string.Empty,
                             EmployerCity = e.EmployerCity,
                             IsCurrentEmployer = e.IsCurrentEmployer,
@@ -174,7 +173,6 @@ namespace IdentityWebApi.Services
                     {
                         var learnDetail = new UserLearnDetail
                         {
-                            UserId = user.Id,
                             InstitutionName = l.InstitutionName ?? string.Empty,
                             Award = l.Award ?? string.Empty,
                             StartYear = l.StartYear,
@@ -292,7 +290,7 @@ namespace IdentityWebApi.Services
                 await _context.Database.ExecuteSqlRawAsync("EXECUTE DBO.UPSERT_USERPROFILEFROMJSON @JSONDATA",
                     new SqlParameter("@JSONDATA", System.Text.Json.JsonSerializer.Serialize(saveUserDataRequest)));
             }
-            catch (DbUpdateException ex)
+            catch (Exception ex)
             {
                 _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
                                    Constants.UpsertUserDataRoute, saveUserDataRequest.Username, ex.Message);

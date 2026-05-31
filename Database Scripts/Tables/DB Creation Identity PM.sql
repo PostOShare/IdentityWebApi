@@ -1,14 +1,14 @@
-IF NOT EXISTS(SELECT * FROM sys.databases WHERE name = 'IdentitySD')
+IF NOT EXISTS(SELECT * FROM sys.databases WHERE name = 'IdentityPM')
 BEGIN
-	CREATE DATABASE [IdentitySD];
+	CREATE DATABASE [IdentityPM];
 END
 GO
-    USE [IdentitySD];
+    USE [IdentityPM];
 GO
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='Login' and xtype='U')
 BEGIN
-	CREATE TABLE [Login]
+	CREATE TABLE [dbo].[Login]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
 	  ,[Key] NVARCHAR(300) NOT NULL
@@ -17,7 +17,7 @@ BEGIN
       ,[LastLoginTime] DATETIME NOT NULL
       ,[UserRole] NVARCHAR(10)
       ,[IsActive] BIT NOT NULL
-	  ,CONSTRAINT [PK_IdentitySD_Login] PRIMARY KEY 
+	  ,CONSTRAINT [PK_IdentityPM_Login] PRIMARY KEY 
 	  (
 		[Username] ASC
 	  )
@@ -29,7 +29,7 @@ END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='User' and xtype='U')
 BEGIN
-	CREATE TABLE [User]
+	CREATE TABLE [dbo].[User]
 	(
 	   [Id] INT IDENTITY(1,1)
 	  ,[Username] NVARCHAR(10) NOT NULL
@@ -39,7 +39,7 @@ BEGIN
       ,[Suffix] NVARCHAR(10)
       ,[EmailAddress] NVARCHAR(30) NOT NULL
       ,[Phone] NVARCHAR(10)
-	  ,CONSTRAINT [PK_IdentitySD_User] PRIMARY KEY CLUSTERED 
+	  ,CONSTRAINT [PK_IdentityPM_User] PRIMARY KEY CLUSTERED 
 	  (
 		[Id] ASC
 	  )
@@ -55,13 +55,13 @@ END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='OTPValidate' and xtype='U')
 BEGIN
-	CREATE TABLE [OTPValidate]
+	CREATE TABLE [dbo].[OTPValidate]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
 	  ,[OTP] NUMERIC(6,0)
       ,[RequestedTime] DATETIME NOT NULL
       ,[RetryAttempt] NUMERIC(2,0)
-	  ,CONSTRAINT [PK_IdentitySD_OTPValidate] PRIMARY KEY CLUSTERED 
+	  ,CONSTRAINT [PK_IdentityPM_OTPValidate] PRIMARY KEY CLUSTERED 
 	  (
 		[Username] ASC
 	  )
@@ -77,13 +77,13 @@ END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='UserAuth' and xtype='U')
 BEGIN
-	CREATE TABLE [UserAuth]
+	CREATE TABLE [dbo].[UserAuth]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
 	  ,[Token] NVARCHAR(MAX)
       ,[CreatedTime] DATETIME NOT NULL
       ,[Enabled] BIT
-	  ,CONSTRAINT [PK_IdentitySD_UserAuth] PRIMARY KEY CLUSTERED 
+	  ,CONSTRAINT [PK_IdentityPM_UserAuth] PRIMARY KEY CLUSTERED 
 	  (
 		[Username] ASC
 	  )
@@ -99,7 +99,7 @@ END
 
 IF NOT EXISTS(SELECT * FROM sysobjects WHERE name='User_PersonalDetails' and xtype='U')
 BEGIN
-	CREATE TABLE [User_PersonalDetails]
+	CREATE TABLE [dbo].[User_PersonalDetails]
 	(
 	   [Id] INT IDENTITY(1,1)
 	  ,[UserId] INT NOT NULL
@@ -109,12 +109,14 @@ BEGIN
       ,[Gender] NVARCHAR(10)
 	  ,[LanguageOne] NVARCHAR(10)
 	  ,[LanguageTwo] NVARCHAR(10)
-	  ,CONSTRAINT [PK_IdentitySD_User_PersonalDetails] PRIMARY KEY CLUSTERED 
+	  ,[CreatedTime] DATETIME
+	  ,[UpdatedTime] DATETIME 
+	  ,CONSTRAINT [PK_IdentityPM_User_PersonalDetails] PRIMARY KEY CLUSTERED 
 	  (
 		[Id] ASC
 	  )
 	  ,CONSTRAINT FK_UserPersonalDetails_User FOREIGN KEY (UserId)
-        REFERENCES [User] (Id)
+        REFERENCES [dbo].[User] (Id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
 	);
@@ -136,7 +138,9 @@ BEGIN
 	  ,[StartDate] DATETIME2  
 	  ,[EndDate] DATETIME2
 	  ,[IsCurrentEmployer] BIT DEFAULT 0
-	  ,CONSTRAINT [SD_IdentityPM_User_EmploymentDetails] PRIMARY KEY CLUSTERED 
+	  ,[CreatedTime] DATETIME
+	  ,[UpdatedTime] DATETIME
+	  ,CONSTRAINT [PK_IdentityPM_User_EmploymentDetails] PRIMARY KEY CLUSTERED 
 	  (
 		[Id] ASC
 	  )
@@ -161,7 +165,9 @@ BEGIN
       ,[StartYear] INT NOT NULL
       ,[EndYear] INT NOT NULL
 	  ,[Major] NVARCHAR(100)
-	  ,CONSTRAINT [SD_IdentityPM_User_LearnDetails] PRIMARY KEY CLUSTERED 
+	  ,[CreatedTime] DATETIME
+	  ,[UpdatedTime] DATETIME
+	  ,CONSTRAINT [PK_IdentityPM_User_LearnDetails] PRIMARY KEY CLUSTERED 
 	  (
 		[Id] ASC
 	  )
