@@ -1,16 +1,21 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace IdentityWebApiCommon.Models.DTO.Request
 {
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public class ListUserDataRequestDTO
     {
         [Required]
-        public string Username { get; set; } = string.Empty;
+        [JsonPropertyName("username")]
+        public string Username { get; set; }
 
         [Required]
+        [JsonPropertyName("refreshToken")]
         public string RefreshToken { get; set; }
 
         [Required]
+        [JsonPropertyName("accessToken")]
         public string AccessToken { get; set; }
     }
 }
