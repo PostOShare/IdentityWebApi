@@ -559,10 +559,10 @@ namespace IdentityWebApi.Services
             };
         }
 
-        public async Task<AuthResultDTO> ValidateAccessToken(CreateTokenRequestDTO createTokenRequestDTO, string secretKey)
+        public async Task<AuthResultDTO> ValidateAccessToken(ValidateTokenRequestDTO validateTokenRequestDTO, string secretKey)
         {
             _logger.LogInformation("Route: {method}, Access token: {token} | Validating the access token",
-                                   Constants.ValidateAccessTokenIdentityRoute, createTokenRequestDTO.AccessToken);
+                                   Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
 
             var handler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(secretKey);
@@ -570,7 +570,7 @@ namespace IdentityWebApi.Services
             JwtSecurityToken? token = null;
             try
             {
-                handler.ValidateToken(createTokenRequestDTO.AccessToken, new TokenValidationParameters()
+                handler.ValidateToken(validateTokenRequestDTO.AccessToken, new TokenValidationParameters()
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
@@ -600,7 +600,7 @@ namespace IdentityWebApi.Services
             if (expired)
             {
                 _logger.LogInformation("Route: {method}, Access token: {token} | The access token is valid",
-                                   Constants.ValidateAccessTokenIdentityRoute, createTokenRequestDTO.AccessToken);
+                                   Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
 
                 return new AuthResultDTO
                 {
@@ -611,7 +611,7 @@ namespace IdentityWebApi.Services
             else
             {
                 _logger.LogInformation("Route: {method}, Access token: {token} | The access token is expired",
-                                   Constants.ValidateAccessTokenIdentityRoute, createTokenRequestDTO.AccessToken);
+                                   Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
 
                 return new AuthResultDTO
                 {

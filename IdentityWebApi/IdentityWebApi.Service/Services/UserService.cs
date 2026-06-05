@@ -120,7 +120,7 @@ namespace IdentityWebApi.Services
             try
             {
                 var client = _clientFactory.CreateClient("InternalApi");
-                var data = new CreateTokenRequestDTO { AccessToken = accessToken, RefreshToken = refreshToken };
+                var data = new ValidateTokenRequestDTO { AccessToken = accessToken, RefreshToken = refreshToken };
                 using var response = await client.PostAsJsonAsync(validateAccessTokenEndpointUrl, data);
                 if (response.IsSuccessStatusCode)
                 {
