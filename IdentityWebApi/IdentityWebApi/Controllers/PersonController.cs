@@ -1,8 +1,6 @@
 ﻿using IdentityWebApi.Services;
 using IdentityWebApiCommon.HelperUtility;
-using IdentityWebApiCommon.Models.DTO;
 using IdentityWebApiCommon.Models.DTO.Request;
-using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
