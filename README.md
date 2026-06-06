@@ -398,3 +398,184 @@ curl -X 'POST' \
     "error": "<Specific error>"
   }
   ```
+
+## api/v1/user/list-userdata
+
+This endpoint retrieves user information based on username and token.
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/user/list-userdata' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "username": "user1",
+  "refreshToken": "VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRnZGYiLCJuYmYiOjE3ODAyMzY0NjYsImV4cCI6MTc4MDIzNzM2NiwiaWF0IjoxNzgwMjM2NDY2fQ.6QI1U2Z_CD3r7DkKST6J1kkf2FV2dlHRBK18_eWik4g"
+}'
+```
+
+### Responses
+
+- 200 - 
+  	
+  **Sample Response**
+  ```json
+  {
+    "username": "user1",
+    "refreshToken": "VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRnZGYiLCJuYmYiOjE3ODAyMzY0NjYsImV4cCI6MTc4MDIzNzM2NiwiaWF0IjoxNzgwMjM2NDY2fQ.6QI1U2Z_CD3r7DkKST6J1kkf2FV2dlHRBK18_eWik4g",
+    "personalDetail": {
+        "birthDate": "2026-05-28T15:27:25.463",
+        "gender": "Male",
+        "languageOne": "English",
+        "languageTwo": "",
+        "location": "Gampaha",
+        "status": "Single"
+    },
+    "employmentDetail": [
+        {
+            "employerName": "Employer2",
+            "employerCity": "EmployerCity2",
+            "isCurrentEmployer": true,
+            "role": "",
+            "responsibilities": "Test2",
+            "startDate": "2022-05-31T17:37:03",
+            "endDate": "2024-05-31T17:37:03"
+        },
+        {
+            "employerName": "Employer1",
+            "employerCity": "EmployerCity1",
+            "isCurrentEmployer": false,
+            "role": "",
+            "responsibilities": "Test1",
+            "startDate": "2022-02-16T17:37:03",
+            "endDate": "2022-05-30T17:37:03"
+        }
+    ],
+    "learnDetail": [
+        {
+            "institutionName": "Institution1",
+            "major": "Major",
+            "award": "Award",
+            "startYear": 2023,
+            "endYear": 2025
+        },
+        {
+            "institutionName": "Institution2",
+            "major": "Major",
+            "award": "Award",
+            "startYear": 2024,
+            "endYear": 2025
+        }
+    ],
+    "result": true,
+    "error": ""
+}
+  ```
+
+- 400 - Invalid request, Invalid username and/or expired token (User does not exist)
+- 500 -
+
+  ```json
+  {
+    "result": false,
+    "error": "<Specific error>"
+  }
+  ```
+
+## api/v1/user/upsert-userdata
+
+This endpoint saves/updates user information based on username and token.
+
+### Sample request
+
+```
+curl -X 'POST' \
+  'https://localhost:7224/api/v1/user/upsert-userdata' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "username": "user1",
+    "refreshToken": "VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRnZGYiLCJuYmYiOjE3ODAyMzY0NjYsImV4cCI6MTc4MDIzNzM2NiwiaWF0IjoxNzgwMjM2NDY2fQ.6QI1U2Z_CD3r7DkKST6J1kkf2FV2dlHRBK18_eWik4g",
+    "personalDetail": {
+        "birthDate": "2026-05-28T15:27:25.463",
+        "gender": "Male",
+        "languageOne": "English",
+        "languageTwo": "",
+        "location": "Gampaha",
+        "status": "Single"
+    },
+    "employmentDetail": [
+        {
+            "employerName": "Employer2",
+            "employerCity": "EmployerCity2",
+            "isCurrentEmployer": true,
+            "role": "",
+            "responsibilities": "Test2",
+            "startDate": "2022-05-31T17:37:03",
+            "endDate": "2024-05-31T17:37:03"
+        },
+        {
+            "employerName": "Employer1",
+            "employerCity": "EmployerCity1",
+            "isCurrentEmployer": false,
+            "role": "",
+            "responsibilities": "Test1",
+            "startDate": "2022-02-16T17:37:03",
+            "endDate": "2022-05-30T17:37:03"
+        }
+    ],
+    "learnDetail": [
+        {
+            "institutionName": "Institution1",
+            "major": "Major",
+            "award": "Award",
+            "startYear": 2023,
+            "endYear": 2025
+        },
+        {
+            "institutionName": "Institution2",
+            "major": "Major",
+            "award": "Award",
+            "startYear": 2024,
+            "endYear": 2025
+        }
+    ]
+}'
+```
+
+### Responses
+
+- 201 - User information saved
+  	
+  **Sample Response**
+  ```json
+  {    
+    "result": true,
+    "error": ""
+  }
+  ```
+
+  User doesn't exists
+
+  **Sample Response**
+  ```json
+  {    
+    "result": false,
+    "error": "User not found."
+  }
+  ```
+
+- 400 - Invalid request, Invalid username and/or expired token (User does not exist)
+- 500 -
+
+  ```json
+  {
+    "result": false,
+    "error": "<Specific error>"
+  }
+  ```
