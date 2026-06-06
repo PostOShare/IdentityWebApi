@@ -302,15 +302,15 @@ namespace IdentityWebApi.Controllers
         [SwaggerOperation("Validates an access token")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> ValidateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
+        public async Task<IActionResult> ValidateAccessToken([FromBody] ValidateTokenRequestDTO validateTokenRequestDTO)
         {
-            if (string.IsNullOrEmpty(createTokenRequestDTO.AccessToken))
+            if (string.IsNullOrEmpty(validateTokenRequestDTO.AccessToken))
                 return BadRequest(Constants.InvalidAccessTokenError);
 
             try
             {
                 var key = _configuration.GetSection(Constants.SecretKey).Value;
-                var response = await _identityService.ValidateAccessToken(createTokenRequestDTO, key!);
+                var response = await _identityService.ValidateAccessToken(validateTokenRequestDTO, key!);
 
                 if (!response.Result)
                     return BadRequest(response.Error);
