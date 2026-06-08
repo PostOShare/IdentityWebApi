@@ -1,0 +1,351 @@
+{
+  "info": {
+    "_postman_id": "fa2fbb9c-7d06-4260-a442-411c84740529",
+    "name": "IdentityAPI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12673652"
+  },
+  "item": [
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "list-userdata",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"user1\",\r\n  \"refreshToken\": \"VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=\",\r\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRnZGYiLCJuYmYiOjE3ODAyMzY0NjYsImV4cCI6MTc4MDIzNzM2NiwiaWF0IjoxNzgwMjM2NDY2fQ.6QI1U2Z_CD3r7DkKST6J1kkf2FV2dlHRBK18_eWik4g\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/user/list-userdata",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "list-userdata"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "upsert-userdata",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"dgdf\",\r\n    \"refreshToken\": \"VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=\",\r\n    \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRnZGYiLCJuYmYiOjE3ODAyMzY0NjYsImV4cCI6MTc4MDIzNzM2NiwiaWF0IjoxNzgwMjM2NDY2fQ.6QI1U2Z_CD3r7DkKST6J1kkf2FV2dlHRBK18_eWik4g\",\r\n    \"personalDetail\": {\r\n        \"birthDate\": \"2026-05-28T15:27:25.463\",\r\n        \"gender\": \"Male\",\r\n        \"languageOne\": \"English\",\r\n        \"languageTwo\": \"\",\r\n        \"location\": \"Gampaha\",\r\n        \"status\": \"Single\"\r\n    },\r\n    \"employmentDetail\": [\r\n        {\r\n            \"employerName\": \"Employer2\",\r\n            \"employerCity\": \"EmployerCity2\",\r\n            \"isCurrentEmployer\": true,\r\n            \"role\": \"\",\r\n            \"responsibilities\": \"Test2\",\r\n            \"startDate\": \"2022-05-31T17:37:03\",\r\n            \"endDate\": \"2024-05-31T17:37:03\"\r\n        },\r\n        {\r\n            \"employerName\": \"Employer1\",\r\n            \"employerCity\": \"EmployerCity1\",\r\n            \"isCurrentEmployer\": false,\r\n            \"role\": \"\",\r\n            \"responsibilities\": \"Test1\",\r\n            \"startDate\": \"2022-02-16T17:37:03\",\r\n            \"endDate\": \"2022-05-30T17:37:03\"\r\n        }\r\n    ],\r\n    \"learnDetail\": [\r\n        {\r\n            \"institutionName\": \"Institution1\",\r\n            \"major\": \"Major\",\r\n            \"award\": \"Award\",\r\n            \"startYear\": 2023,\r\n            \"endYear\": 2025\r\n        },\r\n        {\r\n            \"institutionName\": \"Institution2\",\r\n            \"major\": \"Major\",\r\n            \"award\": \"Award\",\r\n            \"startYear\": 2024,\r\n            \"endYear\": 2025\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/user/upsert-userdata",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "upsert-userdata"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Identity",
+      "item": [
+        {
+          "name": "login-identity",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"username\",\r\n  \"password\": \"password\",\r\n  \"registeredDate\": \"2024-02-28T15:01:55.693Z\",\r\n  \"lastLoginTime\": \"2024-02-28T15:01:55.693Z\",\r\n  \"userRole\": \"userRole\",\r\n  \"isActive\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/auth/login-identity",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login-identity"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "register-identity",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"user\",\r\n  \"password\": \"password\",\r\n  \"title\": \"mr.\",\r\n  \"firstName\": \"Edwin\",\r\n  \"lastName\": \"Doe\",\r\n  \"suffix\": \"\",\r\n  \"emailAddress\": \"edwar123@outlook.com\",\r\n  \"phone\": \"1234561234\",\r\n  \"userRole\": \"user\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/auth/register-identity",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register-identity"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "generate-accessToken",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refreshToken\": \"VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/auth/generate-accessToken",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "generate-accessToken"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "search-identity",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"user\",\r\n  \"emailAddress\": \"edwar123@outlook.com\",\r\n  \"otp\": 2367,\r\n  \"password\": \"password\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/auth/search-identity",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "search-identity"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "verify-identity",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"user\",\r\n  \"emailAddress\": \"edwar123@outlook.com\",\r\n  \"otp\": 2367,\r\n  \"password\": \"password\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/auth/verify-identity",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify-identity"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "validate-passcode-identity",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"user\",\r\n  \"emailAddress\": \"edwar123@outlook.com\",\r\n  \"otp\": 2367,\r\n  \"password\": \"password\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/auth/validate-passcode-identity",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "validate-passcode-identity"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "change-credentials-identity",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"user\",\r\n  \"emailAddress\": \"edwar123@outlook.com\",\r\n  \"otp\": 2367,\r\n  \"password\": \"password\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/auth/change-credentials-identity",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-credentials-identity"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "validate-accessToken",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refreshToken\": \"w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=\",\r\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5MzA0ODk5LCJleHAiOjE3MDkzMDU3OTksImlhdCI6MTcwOTMwNDg5OX0.Hw1GmtW4O245qfD11cHOCQtQ91p2inAOlm6cIjL31rU\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://localhost:7224/api/v1/auth/validate-accessToken",
+              "protocol": "https",
+              "host": [
+                "localhost"
+              ],
+              "port": "7224",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "validate-accessToken"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
