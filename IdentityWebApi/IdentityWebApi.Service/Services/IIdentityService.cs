@@ -12,6 +12,6 @@ namespace IdentityWebApi.Services
         Task<BaseResponseDTO> ValidatePasscode(UpdateRequestDTO updateRequestDTO);
         Task<BaseResponseDTO> UpdateKeySalt(UpdateRequestDTO updateRequestDTO);
         Task<AuthResultDTO> GenerateAccessToken(CreateTokenRequestDTO createTokenRequestDTO);
-        Task<AuthResultDTO> ValidateAccessToken(CreateTokenRequestDTO createTokenRequestDTO, string secretKey);
+        Task<AuthResultDTO> ValidateAccessToken(ValidateTokenRequestDTO validateTokenRequestDTO, string secretKey);
     }
 }
