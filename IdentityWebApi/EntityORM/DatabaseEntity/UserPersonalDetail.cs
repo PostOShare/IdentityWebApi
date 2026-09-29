@@ -1,12 +1,11 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Collections.Generic;
 
 namespace EntityORM.DatabaseEntity
 {
     public partial class UserPersonalDetail
     {
-        [JsonIgnore]
         public int Id { get; set; }
-        [JsonIgnore]
         public int UserId { get; set; }
         public string? Location { get; set; }
         public DateTime? BirthDate { get; set; }
@@ -14,8 +13,9 @@ namespace EntityORM.DatabaseEntity
         public string? Gender { get; set; }
         public string? LanguageOne { get; set; }
         public string? LanguageTwo { get; set; }
+        public DateTime? CreatedTime { get; set; }
+        public DateTime? UpdatedTime { get; set; }
 
-        [JsonIgnore]
         public virtual User User { get; set; } = null!;
     }
 }

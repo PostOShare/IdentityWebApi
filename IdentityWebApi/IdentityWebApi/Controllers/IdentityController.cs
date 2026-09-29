@@ -275,7 +275,6 @@ namespace IdentityWebApi.Controllers
                     return StatusCode(StatusCodes.Status201Created,
                               new AuthResultDTO
                               {
-                                  RefreshToken = response.RefreshToken,
                                   AccessToken = response.AccessToken,
                                   Result = true
                               });
@@ -309,8 +308,7 @@ namespace IdentityWebApi.Controllers
 
             try
             {
-                var key = _configuration.GetSection(Constants.SecretKey).Value;
-                var response = await _identityService.ValidateAccessToken(validateTokenRequestDTO, key!);
+                var response = await _identityService.ValidateAccessToken(validateTokenRequestDTO);
 
                 if (!response.Result)
                     return BadRequest(response.Error);
@@ -318,7 +316,6 @@ namespace IdentityWebApi.Controllers
                     return StatusCode(StatusCodes.Status200OK,
                               new AuthResultDTO
                               {
-                                  RefreshToken = response.RefreshToken,
                                   AccessToken = response.AccessToken,
                                   Result = true
                               });

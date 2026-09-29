@@ -98,7 +98,7 @@ namespace IdentityWebApi.Services
             try
             {
                 current = await _context.UserAuths.Where(user => user.Username.Equals(username) &&
-                                                         user.Token!.Equals(refreshToken))
+                                                         user.RefreshToken!.Equals(refreshToken))
                                                   .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -120,7 +120,7 @@ namespace IdentityWebApi.Services
             try
             {
                 var client = _clientFactory.CreateClient("InternalApi");
-                var data = new ValidateTokenRequestDTO { AccessToken = accessToken, RefreshToken = refreshToken };
+                var data = new ValidateTokenRequestDTO { AccessToken = accessToken };
                 using var response = await client.PostAsJsonAsync(validateAccessTokenEndpointUrl, data);
                 if (response.IsSuccessStatusCode)
                 {

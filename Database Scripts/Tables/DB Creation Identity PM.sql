@@ -80,8 +80,10 @@ BEGIN
 	CREATE TABLE [dbo].[UserAuth]
 	(
 	   [Username] NVARCHAR(10) NOT NULL
-	  ,[Token] NVARCHAR(MAX)
+	  ,[RefreshToken] NVARCHAR(MAX)
+	  ,[AccessToken] NVARCHAR(MAX)
       ,[CreatedTime] DATETIME NOT NULL
+	  ,[LastUpdatedTime] DATETIME NOT NULL
       ,[Enabled] BIT
 	  ,CONSTRAINT [PK_IdentityPM_UserAuth] PRIMARY KEY CLUSTERED 
 	  (

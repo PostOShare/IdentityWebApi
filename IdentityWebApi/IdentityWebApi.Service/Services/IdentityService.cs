@@ -130,7 +130,7 @@ namespace IdentityWebApi.Services
                 var userAuth = new UserAuth
                 {
                     Username = current.Username,
-                    Token = refresh,
+                    RefreshToken = refresh,
                     CreatedTime = DateTime.Now,
                     Enabled = true
                 };
@@ -155,7 +155,7 @@ namespace IdentityWebApi.Services
                 _logger.LogInformation("Route: {method}, User: {username} | Login exists",
                                        Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
-                authUser.Token = refresh;
+                authUser.RefreshToken = refresh;
                 authUser.CreatedTime = DateTime.Now;
 
                 try
@@ -497,7 +497,7 @@ namespace IdentityWebApi.Services
             UserAuth? authUser = null;
             try
             {
-                authUser = await _context.UserAuths.Where(user => user.Token!.Equals(createTokenRequestDTO.RefreshToken))
+                authUser = await _context.UserAuths.Where(user => user.RefreshToken!.Equals(createTokenRequestDTO.RefreshToken))
                                                    .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -520,7 +520,7 @@ namespace IdentityWebApi.Services
                 };
             }
 
-            var refresh = authUser.Token;
+            var refresh = authUser.RefreshToken;
 
             // if the refresh token's created time is more than 1 day it is expired
             if (DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) < 0)
@@ -559,28 +559,49 @@ namespace IdentityWebApi.Services
             };
         }
 
-        public async Task<AuthResultDTO> ValidateAccessToken(ValidateTokenRequestDTO validateTokenRequestDTO, string secretKey)
+        public async Task<AuthResultDTO> ValidateAccessToken(ValidateTokenRequestDTO validateTokenRequestDTO)
         {
-            _logger.LogInformation("Route: {method}, Access token: {token} | Validating the access token",
+            _logger.LogInformation("Route: {method}, Access token: {token} | Validating the refresh token",
                                    Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
 
-            var handler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(secretKey);
-
-            JwtSecurityToken? token = null;
             try
             {
-                handler.ValidateToken(validateTokenRequestDTO.AccessToken, new TokenValidationParameters()
+                UserAuth? authUser = null;
+                try
                 {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    RequireExpirationTime = false,
-                    ValidateLifetime = false
-                }, out var validateToken);
+                    authUser = await _context.UserAuths.Where(user => user.Username.Equals(validateTokenRequestDTO.CurrentUserId) && user.AccessToken!.Equals(validateTokenRequestDTO.AccessToken))
+                                                       .FirstOrDefaultAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                    throw;
+                }
 
-                token = (JwtSecurityToken) validateToken;
+                if (authUser == null || DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) < 0)
+                {
+                    _logger.LogError("Route: {method}, Access token: {token}, Username: {username} | Invalid refresh token",
+                                     Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
+
+                    return new AuthResultDTO
+                    {
+                        AccessToken = validateTokenRequestDTO.AccessToken,
+                        Result = false,
+                        Error = Constants.InvalidRefreshTokenError
+                    };
+                }
+                else
+                {
+                    _logger.LogInformation("Route: {method}, Access token: {token}, Username: {username} | Access token for user is valid",
+                                     Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
+
+                    return new AuthResultDTO
+                    {
+                        AccessToken = validateTokenRequestDTO.AccessToken,
+                        Result = true,
+                        Error = string.Empty
+                    };
+                }
             }
             catch (Exception ex)
             {
@@ -591,34 +612,7 @@ namespace IdentityWebApi.Services
                                Error = Constants.InvalidAccessTokenError,
                                Result = false
                            };
-            }
-
-
-            var expiry = Convert.ToInt64(token.Claims.Where(p => p.Type == "exp").FirstOrDefault()?.Value);
-            var expired = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() > expiry;
-
-            if (expired)
-            {
-                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is valid",
-                                   Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
-
-                return new AuthResultDTO
-                {
-                    Error = Constants.TokenExpiredError,
-                    Result = false
-                };
-            }
-            else
-            {
-                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is expired",
-                                   Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
-
-                return new AuthResultDTO
-                {
-                    Error = string.Empty,
-                    Result = true
-                };
-            }
+            }           
         }
     }
 }
