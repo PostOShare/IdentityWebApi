@@ -247,7 +247,7 @@ namespace IdentityWebApi.Controllers
             }
         }
 
-        /// <summary> Creates an access token based on the user's refresh token
+        /// <summary> Creates an access token, if the refresh token is invalid creates a refresh token
         /// </summary>
         /// <returns> 
         /// A ObjectResult whether the token was created (Status Created),
@@ -256,15 +256,12 @@ namespace IdentityWebApi.Controllers
         /// </returns>
         [HttpPost]
         [Route("generate-accessToken")]
-        [SwaggerOperation("Creates an access token")]
+        [SwaggerOperation("Creates an access token, if the refresh token is invalid creates a refresh token")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
         {
-            if (string.IsNullOrEmpty(createTokenRequestDTO.RefreshToken))
-                return BadRequest(Constants.InvalidRefreshTokenError);
-
             try
             {
                 var response = await _identityService.GenerateAccessToken(createTokenRequestDTO);
@@ -293,8 +290,7 @@ namespace IdentityWebApi.Controllers
         /// <summary> Validates an access token
         /// </summary>
         /// <returns> 
-        /// A ActionResult whether the token is valid (Status Ok),
-        /// not valid or data is invalid (Status Bad Request)
+        /// A ActionResult whether the token is valid (Status Ok), not valid or data is invalid (Status Bad Request)
         /// </returns>
         [HttpPost]
         [Route("validate-accessToken")]
@@ -303,9 +299,6 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> ValidateAccessToken([FromBody] ValidateTokenRequestDTO validateTokenRequestDTO)
         {
-            if (string.IsNullOrEmpty(validateTokenRequestDTO.AccessToken))
-                return BadRequest(Constants.InvalidAccessTokenError);
-
             try
             {
                 var response = await _identityService.ValidateAccessToken(validateTokenRequestDTO);

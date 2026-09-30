@@ -16,7 +16,6 @@
 
         //configuration
         public const string Subject = "PostOShare OTP";
-        public const string SecretKey = "SecretKey";
 
         //Validation
         public const string UserValidationError = "Invalid username and/or password";
