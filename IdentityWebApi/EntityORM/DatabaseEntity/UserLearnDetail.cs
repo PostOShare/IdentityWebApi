@@ -1,20 +1,20 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Collections.Generic;
 
 namespace EntityORM.DatabaseEntity
 {
     public partial class UserLearnDetail
     {
-        [JsonIgnore]
         public int Id { get; set; }
-        [JsonIgnore]
         public int UserId { get; set; }
         public string InstitutionName { get; set; } = null!;
         public string Award { get; set; } = null!;
         public int StartYear { get; set; }
         public int EndYear { get; set; }
         public string? Major { get; set; }
+        public DateTime? CreatedTime { get; set; }
+        public DateTime? UpdatedTime { get; set; }
 
-        [JsonIgnore]
         public virtual User User { get; set; } = null!;
     }
 }

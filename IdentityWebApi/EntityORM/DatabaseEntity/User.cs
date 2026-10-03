@@ -1,4 +1,7 @@
-﻿namespace EntityORM.DatabaseEntity
+﻿using System;
+using System.Collections.Generic;
+
+namespace EntityORM.DatabaseEntity
 {
     public partial class User
     {

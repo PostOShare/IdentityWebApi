@@ -5,11 +5,9 @@ using IdentityWebApiCommon.Models;
 using IdentityWebApiCommon.Models.DTO.Request;
 using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace IdentityWebApi.Services
 {
@@ -18,12 +16,14 @@ namespace IdentityWebApi.Services
         private readonly IdentityPMContext _context;
         private readonly IEmailRepository _mailService;
         private readonly ILogger<IdentityService> _logger;
+        private readonly IConfigurationRoot _configuration;
 
-        public IdentityService(IdentityPMContext context, IEmailRepository mailService, ILogger<IdentityService> logger)
+        public IdentityService(IdentityPMContext context, IEmailRepository mailService, ILogger<IdentityService> logger, IConfigurationRoot configuration)
         {
             _context = context;
             _mailService = mailService;
             _logger = logger;
+            _configuration = configuration;
         }
 
         public async Task<AuthResultDTO> Login(LoginRequestDTO loginRequestDTO)
@@ -54,9 +54,9 @@ namespace IdentityWebApi.Services
                 return new AuthResultDTO
                 {
                     Result = false,
-                    RefreshToken = string.Empty,
                     AccessToken = string.Empty,
-                    Error = Constants.UserValidationError
+                    ErrorCode = ErrorCodes.UserValidationError,
+                    ErrorDescription = ErrorDescriptions.UserValidationError
                 };
             }
 
@@ -75,9 +75,9 @@ namespace IdentityWebApi.Services
                 return new AuthResultDTO
                 {
                     Result = false,
-                    RefreshToken = string.Empty,
                     AccessToken = string.Empty,
-                    Error = Constants.UserValidationError
+                    ErrorCode = ErrorCodes.UserValidationError,
+                    ErrorDescription = ErrorDescriptions.UserValidationError
                 };
             }
 
@@ -104,7 +104,7 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} | Generate a refresh token and save in DB",
                                    Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
-            var refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
+            var refresh = new TokenGenerationHelper().GenerateRefreshToken();
 
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether loginRequestDTO exists",
                                    Constants.LoginIdentityRoute, loginRequestDTO.Username);
@@ -130,7 +130,7 @@ namespace IdentityWebApi.Services
                 var userAuth = new UserAuth
                 {
                     Username = current.Username,
-                    Token = refresh,
+                    RefreshToken = refresh,
                     CreatedTime = DateTime.Now,
                     Enabled = true
                 };
@@ -155,7 +155,7 @@ namespace IdentityWebApi.Services
                 _logger.LogInformation("Route: {method}, User: {username} | Login exists",
                                        Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
-                authUser.Token = refresh;
+                authUser.RefreshToken = refresh;
                 authUser.CreatedTime = DateTime.Now;
 
                 try
@@ -178,8 +178,7 @@ namespace IdentityWebApi.Services
             return new AuthResultDTO
             {
                 Result = true,
-                RefreshToken = refresh,
-                AccessToken = new JWTTokenGenerationHelper().GenerateJWTToken(current.Username)
+                AccessToken = new TokenGenerationHelper().GenerateAccessToken(loginRequestDTO.Username, _configuration["Jwt:Issuer"]!, _configuration["Jwt:SigningKey"]!)
             };
         }
 
@@ -206,7 +205,7 @@ namespace IdentityWebApi.Services
                 _logger.LogInformation("Route: {method}, User: {username} | User exists",
                                        Constants.RegisterIdentityRoute, registerRequestDTO.Username);
 
-                return new BaseResponseDTO { Error = "The given account could not be registered." , Result = false};
+                return new BaseResponseDTO { ErrorCode = ErrorCodes.UserExistsError, ErrorDescription = ErrorDescriptions.UserExistsError, Result = false };
             }
 
             //If the user does not exist, add the user with the given data to Login
@@ -269,7 +268,7 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} |  User has been registered",
                                    Constants.RegisterIdentityRoute, registerRequestDTO.Username);
 
-            return new BaseResponseDTO { Error = string.Empty, Result = true };
+            return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
         }
 
         public async Task<BaseResponseDTO> UserData(UpdateRequestDTO updateRequestDTO)
@@ -290,7 +289,7 @@ namespace IdentityWebApi.Services
                     _logger.LogError("Route: {method}, User: {username} | Invalid username and/or email",
                                      Constants.SearchIdentityRoute, updateRequestDTO.Username);
 
-                    return new BaseResponseDTO { Error = Constants.UserValidationError, Result = false };
+                    return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
                 }
             }
             catch (Exception ex)
@@ -302,7 +301,7 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} |  User exists",
                                   Constants.SearchIdentityRoute, updateRequestDTO.Username);
 
-            return new BaseResponseDTO { Error = string.Empty, Result = true };
+            return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
         }
 
         public async Task<BaseResponseDTO> SendVerification(UpdateRequestDTO updateRequestDTO)
@@ -326,7 +325,7 @@ namespace IdentityWebApi.Services
             {
                 _logger.LogError("Route: {method}, User: {username} | Invalid username",
                                  Constants.VerifyIdentityRoute, updateRequestDTO.Username);
-                return new BaseResponseDTO { Error = Constants.UserValidationError, Result = false };
+                return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
             }
 
             var otpModel = new OTPModel();
@@ -362,7 +361,7 @@ namespace IdentityWebApi.Services
             {
                 _logger.LogInformation("Route: {method}, User: {username} | OTP was sent",
                                        Constants.VerifyIdentityRoute, updateRequestDTO.Username);
-                return new BaseResponseDTO { Error = string.Empty, Result = true };
+                return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
             }
             else
             {
@@ -394,7 +393,7 @@ namespace IdentityWebApi.Services
                 _logger.LogError("Route: {method}, User: {username} | Invalid username",
                                  Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
 
-                return new BaseResponseDTO { Error = Constants.UserValidationError, Result = false };
+                return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
             }
 
             if (exist.Otp == updateRequestDTO.Otp)
@@ -402,7 +401,7 @@ namespace IdentityWebApi.Services
                 _logger.LogInformation("Route: {method}, User: {username} | OTP entered is valid",
                                        Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
 
-                return new BaseResponseDTO { Error = string.Empty, Result = true };
+                return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
             }
             else
             {
@@ -427,13 +426,13 @@ namespace IdentityWebApi.Services
                         throw;
                     }
 
-                    return new BaseResponseDTO { Error = Constants.InvalidOTPError, Result = false };
+                    return new BaseResponseDTO { ErrorCode = ErrorCodes.InvalidOTPError, ErrorDescription = ErrorDescriptions.InvalidOTPError, Result = false };
                 }
                 else
                 {
                     _logger.LogInformation("Route: {method}, User: {username} | Maximum attempts have been attempted",
                                            Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
-                    return new BaseResponseDTO { Error = "Cannot try more than maximum attempts", Result = false };
+                    return new BaseResponseDTO { ErrorCode = ErrorCodes.OTPCountExceededError, ErrorDescription = ErrorDescriptions.OTPCountExceededError, Result = false };
                 }
             }
         }
@@ -460,7 +459,7 @@ namespace IdentityWebApi.Services
                 _logger.LogError("Route: {method}, User: {username} | Invalid username",
                                  Constants.ChangeCredentialsIdentityRoute, updateRequestDTO.Username);
 
-                return new BaseResponseDTO { Error = Constants.UserValidationError, Result = false };
+                return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
             }
 
             _logger.LogInformation("Route: {method}, User: {username} | Updating Key and Salt",
@@ -486,18 +485,18 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} | Key and Salt were updated",
                                    Constants.ChangeCredentialsIdentityRoute, updateRequestDTO.Username);
 
-            return new BaseResponseDTO { Error = string.Empty, Result = true };
+            return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
         }
 
         public async Task<AuthResultDTO> GenerateAccessToken(CreateTokenRequestDTO createTokenRequestDTO)
         {
-            _logger.LogInformation("Route: {method}, Refresh token: {token} | Checking whether the refresh token exists",
-                                   Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+            _logger.LogInformation("Route: {method}, Username: {username} | Checking whether the authentication data exists",
+                                   Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.CurrentUserId);
 
             UserAuth? authUser = null;
             try
             {
-                authUser = await _context.UserAuths.Where(user => user.Token!.Equals(createTokenRequestDTO.RefreshToken))
+                authUser = await _context.UserAuths.Where(user => user.Username.Equals(createTokenRequestDTO.CurrentUserId))
                                                    .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -506,30 +505,40 @@ namespace IdentityWebApi.Services
                 throw;
             }
 
-            if (authUser == null)
+            if (authUser == null || string.IsNullOrEmpty(authUser.RefreshToken))
             {
-                _logger.LogError("Route: {method}, Refresh token: {token} | Invalid refresh token",
-                                 Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+                _logger.LogError("Route: {method}, Username: {username} | Invalid username",
+                                 Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.CurrentUserId);
 
                 return new AuthResultDTO
                 {
-                    RefreshToken = string.Empty,
                     AccessToken = string.Empty,
                     Result = false,
-                    Error = Constants.InvalidRefreshTokenError
+                    ErrorCode = ErrorCodes.UsernameTokenError,
+                    ErrorDescription = ErrorDescriptions.UsernameTokenError
                 };
             }
-
-            var refresh = authUser.Token;
+           
+            var refresh = authUser.RefreshToken;
 
             // if the refresh token's created time is more than 1 day it is expired
             if (DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) < 0)
             {
-                _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating refresh token",
-                                  Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+                _logger.LogInformation("Route: {method} | Generating refresh token",
+                                  Constants.GenerateAccessTokenIdentityRoute);
 
-                refresh = new RefreshTokenGenerationHelper().GenerateRefreshToken().Token;
-                authUser.CreatedTime = DateTime.Now;
+                try
+                { 
+                    refresh = new TokenGenerationHelper().GenerateRefreshToken();
+                    authUser.CreatedTime = DateTime.Now;
+                    authUser.LastUpdatedTime = DateTime.Now;
+                    authUser.RefreshToken = refresh;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical("Exception while creating refresh token {exception}", ex.Message);
+                    throw;
+                }
 
                 try
                 {
@@ -544,43 +553,86 @@ namespace IdentityWebApi.Services
             }
 
             _logger.LogInformation("Route: {method}, Refresh token: {token} | Generating access token",
-                                  Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+                                  Constants.GenerateAccessTokenIdentityRoute, refresh);
+            var access = string.Empty;
+            try
+            {
+                access = new TokenGenerationHelper().GenerateAccessToken(createTokenRequestDTO.CurrentUserId, _configuration["Jwt:Issuer"]!, _configuration["Jwt:SigningKey"]!);
+                authUser.AccessToken = access;
+                authUser.LastUpdatedTime = DateTime.Now;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Exception while creating access token {exception}", ex.Message);
+                throw;
+            }
 
-            var access = new JWTTokenGenerationHelper().GenerateJWTToken(authUser.Username);
+            try
+            {
+                _context.UserAuths.Update(authUser);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                throw;
+            }
 
-            _logger.LogInformation("Route: {method}, Refresh token: {token} | Token(s) were created",
-                                  Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.RefreshToken);
+            _logger.LogInformation("Route: {method}, Refresh token: {token}, Access token: {accessToken} | Token(s) were created",
+                                  Constants.GenerateAccessTokenIdentityRoute, refresh, access);
 
             return new AuthResultDTO
             {
-                RefreshToken = refresh!,
                 AccessToken = access,
                 Result = true
             };
         }
 
-        public async Task<AuthResultDTO> ValidateAccessToken(ValidateTokenRequestDTO validateTokenRequestDTO, string secretKey)
+        public async Task<AuthResultDTO> ValidateAccessToken(ValidateTokenRequestDTO validateTokenRequestDTO)
         {
-            _logger.LogInformation("Route: {method}, Access token: {token} | Validating the access token",
+            _logger.LogInformation("Route: {method}, Access token: {token} | Validating the refresh token",
                                    Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
 
-            var handler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(secretKey);
-
-            JwtSecurityToken? token = null;
             try
             {
-                handler.ValidateToken(validateTokenRequestDTO.AccessToken, new TokenValidationParameters()
+                UserAuth? authUser = null;
+                try
                 {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    RequireExpirationTime = false,
-                    ValidateLifetime = false
-                }, out var validateToken);
+                    authUser = await _context.UserAuths.Where(user => user.Username.Equals(validateTokenRequestDTO.CurrentUserId) && user.AccessToken!.Equals(validateTokenRequestDTO.AccessToken))
+                                                       .FirstOrDefaultAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical("Exception while querying SQL database {exception}", ex.Message);
+                    throw;
+                }
 
-                token = (JwtSecurityToken) validateToken;
+                if (authUser == null || string.IsNullOrEmpty(authUser.RefreshToken) || DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) > 0)
+                {
+                    _logger.LogError("Route: {method}, Access token: {token}, Username: {username} | Invalid refresh token",
+                                     Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
+
+                    return new AuthResultDTO
+                    {
+                        AccessToken = validateTokenRequestDTO.AccessToken,
+                        Result = false,
+                        ErrorCode = ErrorCodes.UsernameTokenError,
+                        ErrorDescription = ErrorDescriptions.UsernameTokenError
+                    };
+                }
+                else
+                {
+                    _logger.LogInformation("Route: {method}, Access token: {token}, Username: {username} | Access token for user is valid",
+                                     Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
+
+                    return new AuthResultDTO
+                    {
+                        AccessToken = validateTokenRequestDTO.AccessToken,
+                        Result = true,
+                        ErrorCode = ErrorCodes.Success,
+                        ErrorDescription = ErrorDescriptions.Success
+                    };
+                }
             }
             catch (Exception ex)
             {
@@ -588,37 +640,11 @@ namespace IdentityWebApi.Services
 
                 return new AuthResultDTO
                            {
-                               Error = Constants.InvalidAccessTokenError,
+                               ErrorCode = ErrorCodes.InvalidAccessTokenError,
+                               ErrorDescription = ErrorDescriptions.InvalidAccessTokenError,
                                Result = false
                            };
-            }
-
-
-            var expiry = Convert.ToInt64(token.Claims.Where(p => p.Type == "exp").FirstOrDefault()?.Value);
-            var expired = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() > expiry;
-
-            if (expired)
-            {
-                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is valid",
-                                   Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
-
-                return new AuthResultDTO
-                {
-                    Error = Constants.TokenExpiredError,
-                    Result = false
-                };
-            }
-            else
-            {
-                _logger.LogInformation("Route: {method}, Access token: {token} | The access token is expired",
-                                   Constants.ValidateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken);
-
-                return new AuthResultDTO
-                {
-                    Error = string.Empty,
-                    Result = true
-                };
-            }
+            }           
         }
     }
 }
