@@ -12,10 +12,6 @@ namespace IdentityWebApiCommon.Models.DTO.Request
         public string Username { get; set; } = null!;
 
         [Required]
-        [JsonPropertyName("refreshToken")]
-        public string? RefreshToken { get; set; }
-
-        [Required]
         [JsonPropertyName("accessToken")]
         public string? AccessToken { get; set; }
 

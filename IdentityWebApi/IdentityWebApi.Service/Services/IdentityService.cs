@@ -26,7 +26,7 @@ namespace IdentityWebApi.Services
             _configuration = configuration;
         }
 
-        public async Task<AuthResultDTO> Login(LoginRequestDTO loginRequestDTO)
+        public async Task<BaseResponseDTO> Login(LoginRequestDTO loginRequestDTO)
         {
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether user exists",
                                    Constants.LoginIdentityRoute, loginRequestDTO.Username);
@@ -51,10 +51,9 @@ namespace IdentityWebApi.Services
                 _logger.LogError("Route: {method}, User: {username} | Invalid username and/or password",
                                  Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
-                return new AuthResultDTO
+                return new BaseResponseDTO
                 {
                     Result = false,
-                    AccessToken = string.Empty,
                     ErrorCode = ErrorCodes.UserValidationError,
                     ErrorDescription = ErrorDescriptions.UserValidationError
                 };
@@ -72,10 +71,9 @@ namespace IdentityWebApi.Services
             {
                 _logger.LogError("Route: {method}, User: {username} | Invalid username and/or password",
                                  Constants.LoginIdentityRoute, loginRequestDTO.Username);
-                return new AuthResultDTO
+                return new BaseResponseDTO
                 {
                     Result = false,
-                    AccessToken = string.Empty,
                     ErrorCode = ErrorCodes.UserValidationError,
                     ErrorDescription = ErrorDescriptions.UserValidationError
                 };
@@ -175,10 +173,11 @@ namespace IdentityWebApi.Services
 
             }
 
-            return new AuthResultDTO
+            return new BaseResponseDTO
             {
                 Result = true,
-                AccessToken = new TokenGenerationHelper().GenerateAccessToken(loginRequestDTO.Username, _configuration["Jwt:Issuer"]!, _configuration["Jwt:SigningKey"]!)
+                ErrorCode = ErrorCodes.Success,
+                ErrorDescription = ErrorDescriptions.Success
             };
         }
 
@@ -268,26 +267,51 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} |  User has been registered",
                                    Constants.RegisterIdentityRoute, registerRequestDTO.Username);
 
+            _logger.LogInformation("Route: {method}, User: {username} | Generating refresh token",
+                                  Constants.RegisterIdentityRoute, registerRequestDTO.Username);
+
+            var userAuth = new UserAuth
+            {
+                Username = registerRequestDTO.Username,
+                RefreshToken = new TokenGenerationHelper().GenerateRefreshToken(),
+                CreatedTime = DateTime.Now,
+                LastUpdatedTime = DateTime.Now,
+                Enabled = true
+            };
+
+            try
+            {
+                _context.Add(userAuth);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
+                                    Constants.RegisterIdentityRoute, registerRequestDTO.Username, ex.Message);
+                throw;
+            }
+
+            _logger.LogInformation("Route: {method}, User: {username} | Refresh token generated",
+                                  Constants.RegisterIdentityRoute, registerRequestDTO.Username);
+
             return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
         }
 
-        public async Task<BaseResponseDTO> UserData(UpdateRequestDTO updateRequestDTO)
+        public async Task<BaseResponseDTO> UserData(UserDataRequestDTO userDataRequestDTO)
         {
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
-                                   Constants.SearchIdentityRoute, updateRequestDTO.Username);
+                                   Constants.SearchIdentityRoute, userDataRequestDTO.Username);
 
             // Check whether a user with the username exists
             try
             {
-                var username = await _context.Logins.Where(user => user.Username.Equals(updateRequestDTO.Username))
-                                                    .FirstOrDefaultAsync();
-                var email = await _context.Users.Where(user => user.EmailAddress.Equals(updateRequestDTO.EmailAddress))
+                var user = await _context.Users.Where(user => user.Username.Equals(userDataRequestDTO.Username) && user.EmailAddress.Equals(userDataRequestDTO.EmailAddress))
                                                 .FirstOrDefaultAsync();
 
-                if (username == null || email == null)
+                if (user == null)
                 {
                     _logger.LogError("Route: {method}, User: {username} | Invalid username and/or email",
-                                     Constants.SearchIdentityRoute, updateRequestDTO.Username);
+                                     Constants.SearchIdentityRoute, userDataRequestDTO.Username);
 
                     return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
                 }
@@ -299,7 +323,7 @@ namespace IdentityWebApi.Services
             }
 
             _logger.LogInformation("Route: {method}, User: {username} |  User exists",
-                                  Constants.SearchIdentityRoute, updateRequestDTO.Username);
+                                  Constants.SearchIdentityRoute, userDataRequestDTO.Username);
 
             return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
         }
@@ -309,10 +333,10 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
                                    Constants.VerifyIdentityRoute, updateRequestDTO.Username);
 
-            Otpvalidate? user = null;
+            User? user = null;
             try
             {
-                user = await _context.Otpvalidates.Where(user => user.Username.Equals(updateRequestDTO.Username))
+                user = await _context.Users.Where(user => user.Username.Equals(updateRequestDTO.Username))
                                                   .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -355,7 +379,7 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} | Sending OTP to email",
                                    Constants.VerifyIdentityRoute, updateRequestDTO.Username);
 
-            var sent = await _mailService.SendMail(updateRequestDTO.EmailAddress, Constants.Subject, body);
+            var sent = await _mailService.SendMail(user.EmailAddress, Constants.Subject, body);
 
             if (sent)
             {
@@ -371,15 +395,15 @@ namespace IdentityWebApi.Services
             }
         }
 
-        public async Task<BaseResponseDTO> ValidatePasscode(UpdateRequestDTO updateRequestDTO)
+        public async Task<BaseResponseDTO> ValidatePasscode(ValidatePasscodeRequestDTO validatePasscodeRequestDTO)
         {
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
-                                   Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
+                                   Constants.ValidatePasscodeIdentityRoute, validatePasscodeRequestDTO.Username);
 
             Otpvalidate? exist = null;
             try
             {
-                exist = await _context.Otpvalidates.Where(user => user.Username.Equals(updateRequestDTO.Username))
+                exist = await _context.Otpvalidates.Where(user => user.Username.Equals(validatePasscodeRequestDTO.Username))
                                                    .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -391,27 +415,27 @@ namespace IdentityWebApi.Services
             if (exist == null)
             {
                 _logger.LogError("Route: {method}, User: {username} | Invalid username",
-                                 Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
+                                 Constants.ValidatePasscodeIdentityRoute, validatePasscodeRequestDTO.Username);
 
                 return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
             }
 
-            if (exist.Otp == updateRequestDTO.Otp)
+            if (exist.Otp == validatePasscodeRequestDTO.Otp)
             {
                 _logger.LogInformation("Route: {method}, User: {username} | OTP entered is valid",
-                                       Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
+                                       Constants.ValidatePasscodeIdentityRoute, validatePasscodeRequestDTO.Username);
 
                 return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
             }
             else
             {
                 _logger.LogInformation("Route: {method}, User: {username} | OTP entered is invalid",
-                                       Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
+                                       Constants.ValidatePasscodeIdentityRoute, validatePasscodeRequestDTO.Username);
 
                 if (exist.RetryAttempt < 4)
                 {
                     _logger.LogInformation("Route: {method}, User: {username} | Updating the request attempt",
-                                           Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
+                                           Constants.ValidatePasscodeIdentityRoute, validatePasscodeRequestDTO.Username);
 
                     exist.RetryAttempt++;
 
@@ -431,13 +455,13 @@ namespace IdentityWebApi.Services
                 else
                 {
                     _logger.LogInformation("Route: {method}, User: {username} | Maximum attempts have been attempted",
-                                           Constants.ValidatePasscodeIdentityRoute, updateRequestDTO.Username);
+                                           Constants.ValidatePasscodeIdentityRoute, validatePasscodeRequestDTO.Username);
                     return new BaseResponseDTO { ErrorCode = ErrorCodes.OTPCountExceededError, ErrorDescription = ErrorDescriptions.OTPCountExceededError, Result = false };
                 }
             }
         }
 
-        public async Task<BaseResponseDTO> UpdateKeySalt(UpdateRequestDTO updateRequestDTO)
+        public async Task<BaseResponseDTO> UpdateKeySalt(LoginRequestDTO updateRequestDTO)
         {
             _logger.LogInformation("Route: {method}, User: {username} | Checking whether the user exists",
                                    Constants.ChangeCredentialsIdentityRoute, updateRequestDTO.Username);
@@ -607,7 +631,7 @@ namespace IdentityWebApi.Services
                     throw;
                 }
 
-                if (authUser == null || string.IsNullOrEmpty(authUser.RefreshToken) || DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) > 0)
+                if (authUser == null || string.IsNullOrEmpty(authUser.RefreshToken) || DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.Now) < 0)
                 {
                     _logger.LogError("Route: {method}, Access token: {token}, Username: {username} | Invalid refresh token",
                                      Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);

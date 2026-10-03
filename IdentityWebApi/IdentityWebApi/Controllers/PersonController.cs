@@ -46,7 +46,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _userService.ListUserData(listUserDataRequest);
 
                 if (response.ErrorCode!.Equals(ErrorCodes.UsernameTokenError))
-                    return BadRequest(ErrorCodes.UsernameTokenError);
+                    return BadRequest(response);
                 else
                     return Ok(response);
             }
@@ -83,9 +83,9 @@ namespace IdentityWebApi.Controllers
                 var response = await _userService.UpsertUserData(saveUserDataRequest);
 
                 if (response.ErrorCode.Equals(ErrorCodes.UsernameTokenError))
-                    return BadRequest(ErrorCodes.UsernameTokenError);
+                    return BadRequest(response);
                 else
-                    return Created(string.Empty, response);
+                    return StatusCode(StatusCodes.Status201Created, response);
             }
             catch (Exception ex)
             {
