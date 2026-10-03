@@ -49,7 +49,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.Login(loginRequestDTO);
 
                 if(response.ErrorCode.Equals(ErrorCodes.UserValidationError))
-                    return BadRequest(ErrorCodes.UserValidationError);
+                    return BadRequest(response);
                 else
                     return Ok(response);
             }
@@ -86,9 +86,9 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.Register(registerRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(ErrorCodes.UserExistsError);
+                    return BadRequest(response);
                 else
-                    return StatusCode(StatusCodes.Status201Created);
+                    return StatusCode(StatusCodes.Status201Created, response);
             }
             catch (Exception ex)
             {
@@ -117,21 +117,20 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO updateRequestDTO)
+        public async Task<IActionResult> UserData([FromBody, Required] UserDataRequestDTO userDataRequestDTO)
         {
             try
             {
-                var response = await _identityService.UserData(updateRequestDTO);
-
+                var response = await _identityService.UserData(userDataRequestDTO);
                 if (!response.Result)
-                    return BadRequest(response.ErrorCode);
+                    return BadRequest(response);
                 else
-                    return Ok(new AuthResultDTO { Result = true });
+                    return Ok(response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                  new AuthResultDTO
+                                  new BaseResponseDTO
                                   {
                                       ErrorCode = ErrorCodes.InternalServerError,
                                       ErrorDescription = ErrorDescriptions.InternalServerError,
@@ -160,11 +159,10 @@ namespace IdentityWebApi.Controllers
             try
             {
                 var response = await _identityService.SendVerification(updateRequestDTO);
-
                 if (!response.Result)
-                    return BadRequest(response.ErrorCode);
+                    return BadRequest(response);
                 else
-                    return StatusCode(StatusCodes.Status201Created);
+                    return StatusCode(StatusCodes.Status201Created, response);
             }
             catch (Exception ex)
             {
@@ -193,21 +191,21 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO updateRequestDTO)
+        public async Task<IActionResult> ValidatePasscode([FromBody] ValidatePasscodeRequestDTO validatePasscodeRequestDTO)
         {
             try
             {
-                var response = await _identityService.ValidatePasscode(updateRequestDTO);
+                var response = await _identityService.ValidatePasscode(validatePasscodeRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.ErrorCode);
+                    return BadRequest(response);
                 else
-                    return Ok(new AuthResultDTO { Result = true });
+                    return Ok(response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                  new AuthResultDTO
+                                  new BaseResponseDTO
                                   {
                                       ErrorCode = ErrorCodes.InternalServerError,
                                       ErrorDescription = ErrorDescriptions.InternalServerError,
@@ -230,21 +228,21 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO updateRequestDTO)
+        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] LoginRequestDTO updateRequestDTO)
         {
             try
             {
                 var response = await _identityService.UpdateKeySalt(updateRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.ErrorCode);
+                    return BadRequest(response);
                 else
-                    return Ok(new AuthResultDTO { Result = true });
+                    return Ok(response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                  new AuthResultDTO
+                                  new BaseResponseDTO
                                   {
                                       ErrorCode = ErrorCodes.InternalServerError,
                                       ErrorDescription = ErrorDescriptions.InternalServerError,
@@ -273,14 +271,9 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.GenerateAccessToken(createTokenRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.ErrorCode);
+                    return BadRequest(response);
                 else
-                    return StatusCode(StatusCodes.Status201Created,
-                              new AuthResultDTO
-                              {
-                                  AccessToken = response.AccessToken,
-                                  Result = true
-                              });
+                    return StatusCode(StatusCodes.Status201Created, response);
             }
             catch (Exception ex)
             {
@@ -311,14 +304,9 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.ValidateAccessToken(validateTokenRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.ErrorCode);
+                    return BadRequest(response);
                 else
-                    return StatusCode(StatusCodes.Status200OK,
-                              new AuthResultDTO
-                              {
-                                  AccessToken = response.AccessToken,
-                                  Result = true
-                              });
+                    return Ok(response);
             }
             catch (Exception ex)
             {

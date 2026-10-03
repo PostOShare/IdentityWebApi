@@ -33,7 +33,7 @@ namespace IdentityWebApi.Services
 
             // Check whether the username and token exist and are valid
 
-            var valid = await ValidateUserAndAccessToken(listUserDataRequestDTO.Username, listUserDataRequestDTO.RefreshToken, listUserDataRequestDTO.AccessToken);
+            var valid = await ValidateUserAndAccessToken(listUserDataRequestDTO.Username, listUserDataRequestDTO.AccessToken);
 
             if (!valid)
             {
@@ -101,14 +101,13 @@ namespace IdentityWebApi.Services
             }            
         }
        
-        public async Task<bool> ValidateUserAndAccessToken(string username, string refreshToken, string accessToken)
+        public async Task<bool> ValidateUserAndAccessToken(string username, string accessToken)
         {
             // Check whether the username and token exist
             UserAuth? current = null;
             try
             {
-                current = await _context.UserAuths.Where(user => user.Username.Equals(username) &&
-                                                         user.RefreshToken!.Equals(refreshToken))
+                current = await _context.UserAuths.Where(user => user.Username.Equals(username))
                                                   .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -130,7 +129,7 @@ namespace IdentityWebApi.Services
             try
             {
                 var client = _clientFactory.CreateClient("InternalApi");
-                var data = new ValidateTokenRequestDTO { AccessToken = accessToken };
+                var data = new ValidateTokenRequestDTO { AccessToken = accessToken, CurrentUserId = current.Username };
                 using var response = await client.PostAsJsonAsync(validateAccessTokenEndpointUrl, data);
                 if (response.IsSuccessStatusCode)
                 {
@@ -157,7 +156,7 @@ namespace IdentityWebApi.Services
 
             // Check whether the username and token exist and are valid
 
-            var valid = await ValidateUserAndAccessToken(saveUserDataRequest.Username, saveUserDataRequest.RefreshToken!, saveUserDataRequest.AccessToken!);
+            var valid = await ValidateUserAndAccessToken(saveUserDataRequest.Username, saveUserDataRequest.AccessToken!);
 
             if (!valid)
             {
@@ -187,8 +186,7 @@ namespace IdentityWebApi.Services
 
                 var json = System.Text.Json.JsonSerializer.Serialize(saveUserDataRequest);
 
-                await _context.Database.ExecuteSqlRawAsync("EXECUTE DBO.UPSERT_USERPROFILEFROMJSON @JSONDATA",
-                    new SqlParameter("@JSONDATA", System.Text.Json.JsonSerializer.Serialize(saveUserDataRequest)));
+                await _context.Database.ExecuteSqlRawAsync("EXECUTE DBO.UPSERT_USERPROFILEFROMJSON @JSONDATA", new SqlParameter("@JSONDATA", json));
             }
             catch (Exception ex)
             {

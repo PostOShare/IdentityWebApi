@@ -12,18 +12,6 @@ namespace IdentityWebApiCommon.Models.DTO.Request
 
         [Required]
         [JsonPropertyName("password")]
-        public string Password { get; set; } = string.Empty;
-
-        [JsonPropertyName("registeredDate")]
-        public DateTime RegisteredDate { get; set; } = DateTime.Now;
-
-        [JsonPropertyName("lastLoginTime")]
-        public DateTime LastLoginTime { get; set; } = DateTime.Now;
-
-        [JsonPropertyName("userRole")]
-        public string? UserRole { get; set; } = string.Empty;
-
-        [JsonPropertyName("isActive")]
-        public bool IsActive { get; set; } = false;
+        public string Password { get; set; } = string.Empty;        
     }
 }
