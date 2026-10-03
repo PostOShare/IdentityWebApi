@@ -45,8 +45,8 @@ namespace IdentityWebApi.Controllers
             {
                 var response = await _userService.ListUserData(listUserDataRequest);
 
-                if (response.Error.Equals(Constants.UsernameTokenError))
-                    return BadRequest(Constants.UsernameTokenError);
+                if (response.ErrorCode!.Equals(ErrorCodes.UsernameTokenError))
+                    return BadRequest(ErrorCodes.UsernameTokenError);
                 else
                     return Ok(response);
             }
@@ -55,7 +55,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new IdentityWebApiCommon.Models.DTO.Response.UserDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -81,8 +82,8 @@ namespace IdentityWebApi.Controllers
             {
                 var response = await _userService.UpsertUserData(saveUserDataRequest);
 
-                if (response.Error.Equals(Constants.UsernameTokenError))
-                    return BadRequest(Constants.UsernameTokenError);
+                if (response.ErrorCode.Equals(ErrorCodes.UsernameTokenError))
+                    return BadRequest(ErrorCodes.UsernameTokenError);
                 else
                     return Created(string.Empty, response);
             }
@@ -91,7 +92,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new IdentityWebApiCommon.Models.DTO.Response.UserDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }

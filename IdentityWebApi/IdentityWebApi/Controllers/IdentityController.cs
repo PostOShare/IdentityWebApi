@@ -48,8 +48,8 @@ namespace IdentityWebApi.Controllers
             {
                 var response = await _identityService.Login(loginRequestDTO);
 
-                if(response.Error.Equals(Constants.UserValidationError))
-                    return BadRequest(Constants.UserValidationError);
+                if(response.ErrorCode.Equals(ErrorCodes.UserValidationError))
+                    return BadRequest(ErrorCodes.UserValidationError);
                 else
                     return Ok(response);
             }
@@ -58,7 +58,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -85,7 +86,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.Register(registerRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(Constants.UserExistsError);
+                    return BadRequest(ErrorCodes.UserExistsError);
                 else
                     return StatusCode(StatusCodes.Status201Created);
             }
@@ -94,7 +95,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -122,7 +124,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.UserData(updateRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response.ErrorCode);
                 else
                     return Ok(new AuthResultDTO { Result = true });
             }
@@ -131,7 +133,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -159,7 +162,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.SendVerification(updateRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response.ErrorCode);
                 else
                     return StatusCode(StatusCodes.Status201Created);
             }
@@ -168,7 +171,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -196,7 +200,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.ValidatePasscode(updateRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response.ErrorCode);
                 else
                     return Ok(new AuthResultDTO { Result = true });
             }
@@ -205,7 +209,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -232,7 +237,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.UpdateKeySalt(updateRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response.ErrorCode);
                 else
                     return Ok(new AuthResultDTO { Result = true });
             }
@@ -241,7 +246,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -267,7 +273,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.GenerateAccessToken(createTokenRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response.ErrorCode);
                 else
                     return StatusCode(StatusCodes.Status201Created,
                               new AuthResultDTO
@@ -281,7 +287,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -304,7 +311,7 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.ValidateAccessToken(validateTokenRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response.ErrorCode);
                 else
                     return StatusCode(StatusCodes.Status200OK,
                               new AuthResultDTO
@@ -318,7 +325,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
