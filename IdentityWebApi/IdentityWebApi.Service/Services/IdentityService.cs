@@ -7,10 +7,7 @@ using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace IdentityWebApi.Services
 {
@@ -57,7 +54,6 @@ namespace IdentityWebApi.Services
                 return new AuthResultDTO
                 {
                     Result = false,
-                    RefreshToken = string.Empty,
                     AccessToken = string.Empty,
                     Error = Constants.UserValidationError
                 };
@@ -78,7 +74,6 @@ namespace IdentityWebApi.Services
                 return new AuthResultDTO
                 {
                     Result = false,
-                    RefreshToken = string.Empty,
                     AccessToken = string.Empty,
                     Error = Constants.UserValidationError
                 };
@@ -181,7 +176,6 @@ namespace IdentityWebApi.Services
             return new AuthResultDTO
             {
                 Result = true,
-                RefreshToken = refresh,
                 AccessToken = new TokenGenerationHelper().GenerateAccessToken(loginRequestDTO.Username, _configuration["Jwt:Issuer"]!, _configuration["Jwt:SigningKey"]!)
             };
         }
@@ -516,7 +510,6 @@ namespace IdentityWebApi.Services
 
                 return new AuthResultDTO
                 {
-                    RefreshToken = string.Empty,
                     AccessToken = string.Empty,
                     Result = false,
                     Error = Constants.UsernameTokenError
@@ -586,7 +579,6 @@ namespace IdentityWebApi.Services
 
             return new AuthResultDTO
             {
-                RefreshToken = refresh!,
                 AccessToken = access,
                 Result = true
             };
@@ -611,7 +603,7 @@ namespace IdentityWebApi.Services
                     throw;
                 }
 
-                if (authUser == null || DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) < 0)
+                if (authUser == null || DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) > 0)
                 {
                     _logger.LogError("Route: {method}, Access token: {token}, Username: {username} | Invalid refresh token",
                                      Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);

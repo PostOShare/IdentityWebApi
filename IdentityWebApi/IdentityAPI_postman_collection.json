@@ -151,7 +151,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"refreshToken\": \"VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=\"\r\n}",
+              "raw": "{\r\n  \"currentUserId\": \"user2\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -321,7 +321,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"refreshToken\": \"w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=\",\r\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5MzA0ODk5LCJleHAiOjE3MDkzMDU3OTksImlhdCI6MTcwOTMwNDg5OX0.Hw1GmtW4O245qfD11cHOCQtQ91p2inAOlm6cIjL31rU\"\r\n}",
+              "raw": "{\r\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiJ1c2VyMiIsIm5iZiI6MTc5MTAzMTkwMSwiZXhwIjoxNzkxMTE4MzAxLCJpYXQiOjE3OTEwMzE5MDEsImlzcyI6Imh0dHBzOi8vd3d3LnBvc3Rvc2hhcmUuY29tLyJ9.1yXxmx11AmBpWxcdgCirDOZrROyCukFWchbQRP3quHY\",\r\n  \"currentUserId\": \"user2\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
