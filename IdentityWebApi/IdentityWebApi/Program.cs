@@ -77,6 +77,8 @@ namespace IdentityWebApi
 
             app.UseHttpsRedirection();
 
+            app.UseModelValidation();
+
             app.UseAuthorization();
 
             app.MapControllers();
