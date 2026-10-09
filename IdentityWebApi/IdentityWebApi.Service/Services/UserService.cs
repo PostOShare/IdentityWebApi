@@ -33,7 +33,7 @@ namespace IdentityWebApi.Services
 
             // Check whether the username and token exist and are valid
 
-            var valid = await ValidateUserAndAccessToken(listUserDataRequestDTO.Username, listUserDataRequestDTO.RefreshToken, listUserDataRequestDTO.AccessToken);
+            var valid = await ValidateUserAndAccessToken(listUserDataRequestDTO.Username, listUserDataRequestDTO.AccessToken);
 
             if (!valid)
             {
@@ -42,63 +42,72 @@ namespace IdentityWebApi.Services
                 return new UserDTO
                 {
                     Result = false,
-                    Error = Constants.UsernameTokenError
+                    ErrorCode = ErrorCodes.UsernameTokenError,
+                    ErrorDescription = ErrorDescriptions.UsernameTokenError
                 };
             }
 
-            var userDto = await _context.Users
-                .Where(u => u.Username == listUserDataRequestDTO.Username)
-                .Select(u => new UserDTO
-                {
-                    Username = u.Username,
-                    PersonalDetail = new PersonalDetailDTO
+            UserDTO user = new UserDTO();
+            try
+            {
+                user = await _context.Users
+                    .Where(u => u.Username == listUserDataRequestDTO.Username)
+                    .Select(u => new UserDTO
                     {
-                        BirthDate = u.UserPersonalDetails.BirthDate,
-                        Gender = u.UserPersonalDetails.Gender,
-                        LanguageOne = u.UserPersonalDetails.LanguageOne,
-                        LanguageTwo = u.UserPersonalDetails.LanguageTwo,
-                        Location = u.UserPersonalDetails.Location,
-                        Status = u.UserPersonalDetails.Status
-                    },
-                    EmploymentDetail = u.UserEmploymentDetails.Select(e => new EmploymentDetailDTO
-                    {
-                        EmployerName = e.EmployerName,
-                        EmployerCity = e.EmployerCity,
-                        IsCurrentEmployer = e.IsCurrentEmployer,
-                        Role = e.Role,
-                        Responsibilities = e.Responsibilities,
-                        StartDate = e.StartDate,
-                        EndDate = e.EndDate
-                    }).ToList(),
-                    LearnDetail = u.UserLearnDetails.Select(l => new LearnDetailDTO
-                    {
-                        InstitutionName = l.InstitutionName,
-                        Major = l.Major,
-                        Award = l.Award,
-                        StartYear = l.StartYear,
-                        EndYear = l.EndYear
-                    }).ToList(),
-                    Result = true,
-                    Error = string.Empty
-                })
-                .FirstOrDefaultAsync();
+                        Username = u.Username,
+                        PersonalDetail = new PersonalDetailDTO
+                        {
+                            BirthDate = u.UserPersonalDetails.BirthDate,
+                            Gender = u.UserPersonalDetails.Gender,
+                            LanguageOne = u.UserPersonalDetails.LanguageOne,
+                            LanguageTwo = u.UserPersonalDetails.LanguageTwo,
+                            Location = u.UserPersonalDetails.Location,
+                            Status = u.UserPersonalDetails.Status
+                        },
+                        EmploymentDetail = u.UserEmploymentDetails.Select(e => new EmploymentDetailDTO
+                        {
+                            EmployerName = e.EmployerName,
+                            EmployerCity = e.EmployerCity,
+                            IsCurrentEmployer = e.IsCurrentEmployer,
+                            Role = e.Role,
+                            Responsibilities = e.Responsibilities,
+                            StartDate = e.StartDate,
+                            EndDate = e.EndDate
+                        }).ToList(),
+                        LearnDetail = u.UserLearnDetails.Select(l => new LearnDetailDTO
+                        {
+                            InstitutionName = l.InstitutionName,
+                            Major = l.Major,
+                            Award = l.Award,
+                            StartYear = l.StartYear,
+                            EndYear = l.EndYear
+                        }).ToList(),
+                        Result = true,
+                        ErrorCode = ErrorCodes.Success,
+                        ErrorDescription = ErrorDescriptions.Success
+                    })
+                    .FirstOrDefaultAsync();
 
-            _logger.LogInformation("Route: {method}, User: {username} | User data queried",
+                _logger.LogInformation("Route: {method}, User: {username} | User data queried",
                                   Constants.ListUserDataRoute, listUserDataRequestDTO.Username);
 
-            return userDto!;
+                return user!;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("Route: {method}, User: {username} | An internal error occurred: {exception}",
+                                   Constants.ListUserDataRoute, listUserDataRequestDTO.Username, ex.Message);
+                throw;
+            }            
         }
-
-        
-
-        public async Task<bool> ValidateUserAndAccessToken(string username, string refreshToken, string accessToken)
+       
+        public async Task<bool> ValidateUserAndAccessToken(string username, string accessToken)
         {
             // Check whether the username and token exist
             UserAuth? current = null;
             try
             {
-                current = await _context.UserAuths.Where(user => user.Username.Equals(username) &&
-                                                         user.Token!.Equals(refreshToken))
+                current = await _context.UserAuths.Where(user => user.Username.Equals(username))
                                                   .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -120,7 +129,7 @@ namespace IdentityWebApi.Services
             try
             {
                 var client = _clientFactory.CreateClient("InternalApi");
-                var data = new ValidateTokenRequestDTO { AccessToken = accessToken, RefreshToken = refreshToken };
+                var data = new ValidateTokenRequestDTO { AccessToken = accessToken, CurrentUserId = current.Username };
                 using var response = await client.PostAsJsonAsync(validateAccessTokenEndpointUrl, data);
                 if (response.IsSuccessStatusCode)
                 {
@@ -147,7 +156,7 @@ namespace IdentityWebApi.Services
 
             // Check whether the username and token exist and are valid
 
-            var valid = await ValidateUserAndAccessToken(saveUserDataRequest.Username, saveUserDataRequest.RefreshToken!, saveUserDataRequest.AccessToken!);
+            var valid = await ValidateUserAndAccessToken(saveUserDataRequest.Username, saveUserDataRequest.AccessToken!);
 
             if (!valid)
             {
@@ -157,7 +166,8 @@ namespace IdentityWebApi.Services
                 return new BaseResponseDTO
                 {
                     Result = false,
-                    Error = Constants.UsernameTokenError
+                    ErrorCode = ErrorCodes.UsernameTokenError,
+                    ErrorDescription = ErrorDescriptions.UsernameTokenError
                 };
             }
 
@@ -168,7 +178,7 @@ namespace IdentityWebApi.Services
 
                 if (user == null)
                 {
-                    return new BaseResponseDTO { Result = false, Error = "User not found." };
+                    return new BaseResponseDTO { Result = false, ErrorCode = ErrorCodes.UserNotFound, ErrorDescription = ErrorDescriptions.UserNotFound };
                 }
 
                 _logger.LogInformation("Route: {method}, User: {username} | Saving user's data",
@@ -176,8 +186,7 @@ namespace IdentityWebApi.Services
 
                 var json = System.Text.Json.JsonSerializer.Serialize(saveUserDataRequest);
 
-                await _context.Database.ExecuteSqlRawAsync("EXECUTE DBO.UPSERT_USERPROFILEFROMJSON @JSONDATA",
-                    new SqlParameter("@JSONDATA", System.Text.Json.JsonSerializer.Serialize(saveUserDataRequest)));
+                await _context.Database.ExecuteSqlRawAsync("EXECUTE DBO.UPSERT_USERPROFILEFROMJSON @JSONDATA", new SqlParameter("@JSONDATA", json));
             }
             catch (Exception ex)
             {
@@ -189,7 +198,7 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, User: {username} |  User data was saved successfully",
                                    Constants.UpsertUserDataRoute, saveUserDataRequest.Username);
 
-            return new BaseResponseDTO { Error = string.Empty, Result = true };
+            return new BaseResponseDTO { ErrorCode = ErrorCodes.Success, ErrorDescription = ErrorDescriptions.Success, Result = true };
         }
     }
 }

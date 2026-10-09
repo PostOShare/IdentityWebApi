@@ -7,6 +7,7 @@ namespace IdentityWebApiCommon.Models.DTO.Response
         public List<EmploymentDetailDTO>? EmploymentDetail { get; set; }
         public List<LearnDetailDTO>? LearnDetail { get; set; }
         public bool Result { get; set; }
-        public string? Error { get; set; }
+        public string? ErrorCode { get; set; }
+        public string? ErrorDescription { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using IdentityWebApi.Repositories;
 using IdentityWebApi.Services;
 using IdentityWebApiCommon.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
@@ -25,10 +26,13 @@ namespace IdentityWebApi
                             .WriteTo.File(builder.Configuration.GetSection("Serilog:WriteTo:1:Args:path").Value))
                             .CreateLogger();
 
+            IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+
             builder.Host.UseSerilog();
 
             builder.Services.AddDbContext<IdentityPMContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionDB")!));
             builder.Services.AddScoped<IEmailRepository,EmailRepository>();
+            builder.Services.AddSingleton<IConfigurationRoot>(configuration);
             builder.Services.AddScoped<IIdentityService,IdentityService>();
             builder.Services.AddScoped<IUserService, UserService>();
 
@@ -72,6 +76,8 @@ namespace IdentityWebApi
             }
 
             app.UseHttpsRedirection();
+
+            app.UseModelValidation();
 
             app.UseAuthorization();
 

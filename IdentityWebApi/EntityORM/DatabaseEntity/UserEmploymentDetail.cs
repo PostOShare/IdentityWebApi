@@ -1,12 +1,11 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Collections.Generic;
 
 namespace EntityORM.DatabaseEntity
 {
     public partial class UserEmploymentDetail
     {
-        [JsonIgnore]
         public int Id { get; set; }
-        [JsonIgnore]
         public int UserId { get; set; }
         public string EmployerName { get; set; } = null!;
         public string? EmployerCity { get; set; }
@@ -15,8 +14,9 @@ namespace EntityORM.DatabaseEntity
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public bool? IsCurrentEmployer { get; set; }
+        public DateTime? CreatedTime { get; set; }
+        public DateTime? UpdatedTime { get; set; }
 
-        [JsonIgnore]
         public virtual User User { get; set; } = null!;
     }
 }

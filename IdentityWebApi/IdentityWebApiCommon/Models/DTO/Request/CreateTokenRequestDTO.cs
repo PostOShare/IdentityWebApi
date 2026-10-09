@@ -7,7 +7,7 @@ namespace IdentityWebApiCommon.Models.DTO.Request
     public class CreateTokenRequestDTO
     {
         [Required]
-        [JsonPropertyName("refreshToken")]
-        public string RefreshToken { get; set; } = string.Empty;
+        [JsonPropertyName("currentUserId")]
+        public string CurrentUserId { get; set; } = string.Empty;
     }
 }
