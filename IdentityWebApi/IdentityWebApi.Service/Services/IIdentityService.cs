@@ -5,13 +5,13 @@ namespace IdentityWebApi.Services
 {
     public interface IIdentityService
     {
-        Task<AuthResultDTO> Login(LoginRequestDTO loginRequestDTO);
+        Task<BaseResponseDTO> Login(LoginRequestDTO loginRequestDTO);
         Task<BaseResponseDTO> Register(RegisterRequestDTO registerRequestDTO);
-        Task<BaseResponseDTO> UserData(UpdateRequestDTO updateRequestDTO);
+        Task<BaseResponseDTO> UserData(UserDataRequestDTO userDataRequestDTO);
         Task<BaseResponseDTO> SendVerification(UpdateRequestDTO updateRequestDTO);
-        Task<BaseResponseDTO> ValidatePasscode(UpdateRequestDTO updateRequestDTO);
-        Task<BaseResponseDTO> UpdateKeySalt(UpdateRequestDTO updateRequestDTO);
+        Task<BaseResponseDTO> ValidatePasscode(ValidatePasscodeRequestDTO validatePasscodeRequestDTO);
+        Task<BaseResponseDTO> UpdateKeySalt(LoginRequestDTO updateRequestDTO);
         Task<AuthResultDTO> GenerateAccessToken(CreateTokenRequestDTO createTokenRequestDTO);
-        Task<AuthResultDTO> ValidateAccessToken(ValidateTokenRequestDTO validateTokenRequestDTO, string secretKey);
+        Task<AuthResultDTO> ValidateAccessToken(ValidateTokenRequestDTO validateTokenRequestDTO);
     }
 }

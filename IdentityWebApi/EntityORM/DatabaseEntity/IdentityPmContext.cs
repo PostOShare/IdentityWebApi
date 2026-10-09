@@ -26,7 +26,11 @@ namespace EntityORM.DatabaseEntity
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            
+            if (!optionsBuilder.IsConfigured)
+            {
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+                optionsBuilder.UseSqlServer("Server=LAPTOP-01RB8N41\\MSSQL2;Database=IdentityPM;User Id=sa;Password=Sq1231;");
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -117,6 +121,8 @@ namespace EntityORM.DatabaseEntity
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
+                entity.Property(e => e.LastUpdatedTime).HasColumnType("datetime");
+
                 entity.HasOne(d => d.UsernameNavigation)
                     .WithOne(p => p.UserAuth)
                     .HasForeignKey<UserAuth>(d => d.Username)
@@ -129,6 +135,8 @@ namespace EntityORM.DatabaseEntity
 
                 entity.HasIndex(e => e.UserId, "IX_User_EmploymentDetails_UserId");
 
+                entity.Property(e => e.CreatedTime).HasColumnType("datetime");
+
                 entity.Property(e => e.EmployerCity).HasMaxLength(50);
 
                 entity.Property(e => e.EmployerName).HasMaxLength(300);
@@ -137,11 +145,7 @@ namespace EntityORM.DatabaseEntity
 
                 entity.Property(e => e.Role).HasMaxLength(20);
 
-                entity.Property(e => e.Responsibilities);
-
-                entity.Property(e => e.StartDate).HasColumnType("datetime");
-
-                entity.Property(e => e.EndDate).HasColumnType("datetime");
+                entity.Property(e => e.UpdatedTime).HasColumnType("datetime");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.UserEmploymentDetails)
@@ -157,9 +161,13 @@ namespace EntityORM.DatabaseEntity
 
                 entity.Property(e => e.Award).HasMaxLength(50);
 
+                entity.Property(e => e.CreatedTime).HasColumnType("datetime");
+
                 entity.Property(e => e.InstitutionName).HasMaxLength(300);
 
                 entity.Property(e => e.Major).HasMaxLength(100);
+
+                entity.Property(e => e.UpdatedTime).HasColumnType("datetime");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.UserLearnDetails)
@@ -175,6 +183,8 @@ namespace EntityORM.DatabaseEntity
 
                 entity.Property(e => e.BirthDate).HasColumnType("datetime");
 
+                entity.Property(e => e.CreatedTime).HasColumnType("datetime");
+
                 entity.Property(e => e.Gender).HasMaxLength(10);
 
                 entity.Property(e => e.LanguageOne).HasMaxLength(10);
@@ -184,6 +194,8 @@ namespace EntityORM.DatabaseEntity
                 entity.Property(e => e.Location).HasMaxLength(300);
 
                 entity.Property(e => e.Status).HasMaxLength(10);
+
+                entity.Property(e => e.UpdatedTime).HasColumnType("datetime");
 
                 entity.HasOne(d => d.User)
                     .WithOne(p => p.UserPersonalDetails)

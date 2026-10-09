@@ -48,8 +48,8 @@ namespace IdentityWebApi.Controllers
             {
                 var response = await _identityService.Login(loginRequestDTO);
 
-                if(response.Error.Equals(Constants.UserValidationError))
-                    return BadRequest(Constants.UserValidationError);
+                if(response.ErrorCode.Equals(ErrorCodes.UserValidationError))
+                    return BadRequest(response);
                 else
                     return Ok(response);
             }
@@ -58,7 +58,8 @@ namespace IdentityWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -85,16 +86,17 @@ namespace IdentityWebApi.Controllers
                 var response = await _identityService.Register(registerRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(Constants.UserExistsError);
+                    return BadRequest(response);
                 else
-                    return StatusCode(StatusCodes.Status201Created);
+                    return StatusCode(StatusCodes.Status201Created, response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -115,23 +117,23 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> UserData([FromBody, Required] UpdateRequestDTO updateRequestDTO)
+        public async Task<IActionResult> UserData([FromBody, Required] UserDataRequestDTO userDataRequestDTO)
         {
             try
             {
-                var response = await _identityService.UserData(updateRequestDTO);
-
+                var response = await _identityService.UserData(userDataRequestDTO);
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response);
                 else
-                    return Ok(new AuthResultDTO { Result = true });
+                    return Ok(response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                  new AuthResultDTO
+                                  new BaseResponseDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -157,18 +159,18 @@ namespace IdentityWebApi.Controllers
             try
             {
                 var response = await _identityService.SendVerification(updateRequestDTO);
-
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response);
                 else
-                    return StatusCode(StatusCodes.Status201Created);
+                    return StatusCode(StatusCodes.Status201Created, response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -189,23 +191,24 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> ValidatePasscode([FromBody] UpdateRequestDTO updateRequestDTO)
+        public async Task<IActionResult> ValidatePasscode([FromBody] ValidatePasscodeRequestDTO validatePasscodeRequestDTO)
         {
             try
             {
-                var response = await _identityService.ValidatePasscode(updateRequestDTO);
+                var response = await _identityService.ValidatePasscode(validatePasscodeRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response);
                 else
-                    return Ok(new AuthResultDTO { Result = true });
+                    return Ok(response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                  new AuthResultDTO
+                                  new BaseResponseDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -225,29 +228,30 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
-        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] UpdateRequestDTO updateRequestDTO)
+        public async Task<IActionResult> UpdateKeySalt([FromBody, Required] LoginRequestDTO updateRequestDTO)
         {
             try
             {
                 var response = await _identityService.UpdateKeySalt(updateRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response);
                 else
-                    return Ok(new AuthResultDTO { Result = true });
+                    return Ok(response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                                  new AuthResultDTO
+                                  new BaseResponseDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
         }
 
-        /// <summary> Creates an access token based on the user's refresh token
+        /// <summary> Creates an access token, if the refresh token is invalid creates a refresh token
         /// </summary>
         /// <returns> 
         /// A ObjectResult whether the token was created (Status Created),
@@ -256,36 +260,28 @@ namespace IdentityWebApi.Controllers
         /// </returns>
         [HttpPost]
         [Route("generate-accessToken")]
-        [SwaggerOperation("Creates an access token")]
+        [SwaggerOperation("Creates an access token, if the refresh token is invalid creates a refresh token")]
         [SwaggerResponse((int)HttpStatusCode.Created)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
         public async Task<IActionResult> GenerateAccessToken([FromBody] CreateTokenRequestDTO createTokenRequestDTO)
         {
-            if (string.IsNullOrEmpty(createTokenRequestDTO.RefreshToken))
-                return BadRequest(Constants.InvalidRefreshTokenError);
-
             try
             {
                 var response = await _identityService.GenerateAccessToken(createTokenRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response);
                 else
-                    return StatusCode(StatusCodes.Status201Created,
-                              new AuthResultDTO
-                              {
-                                  RefreshToken = response.RefreshToken,
-                                  AccessToken = response.AccessToken,
-                                  Result = true
-                              });
+                    return StatusCode(StatusCodes.Status201Created, response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
@@ -294,8 +290,7 @@ namespace IdentityWebApi.Controllers
         /// <summary> Validates an access token
         /// </summary>
         /// <returns> 
-        /// A ActionResult whether the token is valid (Status Ok),
-        /// not valid or data is invalid (Status Bad Request)
+        /// A ActionResult whether the token is valid (Status Ok), not valid or data is invalid (Status Bad Request)
         /// </returns>
         [HttpPost]
         [Route("validate-accessToken")]
@@ -304,31 +299,22 @@ namespace IdentityWebApi.Controllers
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> ValidateAccessToken([FromBody] ValidateTokenRequestDTO validateTokenRequestDTO)
         {
-            if (string.IsNullOrEmpty(validateTokenRequestDTO.AccessToken))
-                return BadRequest(Constants.InvalidAccessTokenError);
-
             try
             {
-                var key = _configuration.GetSection(Constants.SecretKey).Value;
-                var response = await _identityService.ValidateAccessToken(validateTokenRequestDTO, key!);
+                var response = await _identityService.ValidateAccessToken(validateTokenRequestDTO);
 
                 if (!response.Result)
-                    return BadRequest(response.Error);
+                    return BadRequest(response);
                 else
-                    return StatusCode(StatusCodes.Status200OK,
-                              new AuthResultDTO
-                              {
-                                  RefreshToken = response.RefreshToken,
-                                  AccessToken = response.AccessToken,
-                                  Result = true
-                              });
+                    return Ok(response);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
                                   new AuthResultDTO
                                   {
-                                      Error = ex.Message,
+                                      ErrorCode = ErrorCodes.InternalServerError,
+                                      ErrorDescription = ErrorDescriptions.InternalServerError,
                                       Result = false
                                   });
             }
