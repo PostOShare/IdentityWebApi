@@ -18,7 +18,6 @@ The following need to be available to ensure that the API and the SQL Server dat
 - [Visual Studio 2022 or higher](https://visualstudio.microsoft.com/downloads/)
 - [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-2022)
 - [SQL Server Management Studio (SSMS)](https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms?view=sql-server-ver16)
-- [Azure user account](https://portal.azure.com/)
   
 # Installation
 
@@ -33,19 +32,7 @@ cd ..\EntityORM
 dotnet restore
 ```
 
-The API and the SQL Server instance need to be published to a cloud provider to ensure that remote connections can call the API. [Azure](https://azure.microsoft.com/en-us) is used as the provider to publish the API and host the instance. 
-
-<!-- Steps to deploy the API and the instance are
-
-- [Create a VPC to deploy the Identity API](https://github.com/PostOShare/IdentityWebApi/wiki/Create-a-VPC-to-deploy-the-Identity-API)
-- [Installation of DB](https://github.com/PostOShare/IdentityWebApi/wiki/Installation-of-DB)
-- [Create a Lambda function, HTTP API and deploy the Identity API](https://github.com/PostOShare/IdentityWebApi/wiki/Create-a-Lambda-function,-HTTP-API-and-deploy-the-Identity-API)-->
-
-<!-- # Deployment
-
-The API and the SQL Server instance deployment architecture in AWS is illustrated below:
-
-![Architecture of API deployment](https://github.com/PostOShare/IdentityWebApi/assets/17848426/576dbbbd-b03b-4190-8e3c-0345017da049)-->
+The API and the SQL Server instance need to be published to a cloud provider to ensure that remote connections can call the API. [Azure](https://azure.microsoft.com/en-us) is used as the provider to publish the API and host the instance.
 
 # Dependencies
 
@@ -80,11 +67,7 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "username": "username",
-  "password": "password",
-  "registeredDate": "2024-02-28T15:01:55.693Z",
-  "lastLoginTime": "2024-02-28T15:01:55.693Z",
-  "userRole": "userRole",
-  "isActive": true
+  "password": "password"
 }'
 ```
 
@@ -92,25 +75,31 @@ curl -X 'POST' \
 
 - 200 - User exists
   	
-  **Sample Response**
   ```json
-  {
-    "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5MzA0ODk5LCJleHAiOjE3MDkzMDU3OTksImlhdCI6MTcwOTMwNDg5OX0.Hw1GmtW4O245qfD11cHOCQtQ91p2inAOlm6cIjL31rU",
+  {    
     "result": true,
-    "error": ""
+    "errorDescription": "",
+    "errorCode": ""
   }
   ```
 
-- 400 - Invalid request, Invalid username and/or password (User does not exist)
+- 400 -
+
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid username and/or password",
+    "errorCode": "0001"
+  }
+  ```
+  
 - 500 -
 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Internal server error",
+    "errorCode": "0008"
   }
   ```
 
@@ -140,16 +129,33 @@ curl -X 'POST' \
 
 ### Responses
 
-- 201 - User created
-- 400 - Invalid request, Please choose a different username and/or password (User exists)
+- 201 -
+
+  ```json
+  {
+    "result": true,
+    "errorDescription": "Success",
+    "errorCode": "0000"
+  }
+  ```
+  
+- 400 -
+
+  ```json
+  {
+    "result": true,
+    "errorDescription": "Please choose a different username and/or password",
+    "errorCode": "0002"
+  }
+  ```
+  
 - 500 - 
 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Internal server error",
+    "errorCode": "0008"
   }
   ```
 
@@ -166,9 +172,7 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "username": "user",
-  "emailAddress": "edwar123@outlook.com",
-  "otp": 0,
-  "password": "password"
+  "emailAddress": "email@email.com"
 }'
 ```
 
@@ -178,22 +182,29 @@ curl -X 'POST' \
   	
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": true,
-    "error": ""
+    "errorDescription": "Success",
+    "errorCode": "0000"
   }
   ```
 
-- 400 - Invalid username and/or password (User does not exist), Invalid request
+- 400 -
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid username and/or password",
+    "errorCode": "0001"
+  }
+  ```
+  
 - 500 - An internal error occurred
 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Internal server error",
+    "errorCode": "0008"
   }
   ```
 
@@ -209,29 +220,41 @@ curl -X 'POST' \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
   -d '{
-  "username": "user",
-  "emailAddress": "edwar123@outlook.com",
-  "otp": 0,
-  "password": "password"
+  "username": "user"
 }'
 ```
 
 ### Responses
 
-- 201 - Created
-- 400 - Invalid username and/or password (User does not exist), Invalid request
+- 201 -
+
+  ```json
+  {
+    "result": true,
+    "errorDescription": "Success",
+    "errorCode": "0000"
+  }
+  ```
+  
+- 400 -
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid username and/or password",
+    "errorCode": "0001"
+  }
+  ```
+  
 - 500 - An internal error occurred 
 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Internal server error",
+    "errorCode": "0008"
   }
   ```
-
-  500 - InternalServerError (Error when sending email)
   
 ## api/v1/auth/validate-passcode-identity
 
@@ -246,24 +269,55 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "username": "user",
-  "emailAddress": "edwar123@outlook.com",
-  "otp": 236784,
-  "password": "password"
+  "otp": 2367
 }'
 ```
 
 ### Responses
 
-- 200 - OTP is valid
-- 400 - Invalid username and/or password, Invalid OTP, Invalid request
+- 200 -
+  
+  ```json
+  {
+    "result": true,
+    "errorDescription": "Success",
+    "errorCode": "0000"
+  }
+  ```
+  
+- 400 -
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid username and/or password",
+    "errorCode": "0001"
+  }
+  ```
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid OTP",
+    "errorCode": "0003"
+  }
+  ```
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Cannot try more than maximum attempts",
+    "errorCode": "0007"
+  }
+  ```
+  
 - 500 - An internal error occurred 
 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Internal server error",
+    "errorCode": "0008"
   }
   ```
 
@@ -280,8 +334,6 @@ curl -X 'PATCH' \
   -H 'Content-Type: application/json' \
   -d '{
   "username": "user",
-  "emailAddress": "edwar123@outlook.com",
-  "otp": 0,
   "password": "password"
 }'
 ```
@@ -289,25 +341,32 @@ curl -X 'PATCH' \
 ### Responses
 
 - 200 - Key and Salt for the user were updated
-
+ 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": true,
-    "error": ""
+    "errorDescription": "Success",
+    "errorCode": "0000"
   }
   ```
-
-- 400 - Invalid request, Invalid username and/or password
+  
+- 400 -
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid username and/or password",
+    "errorCode": "0001"
+  }
+  ```
+  
 - 500 - An internal error occurred 
 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Internal server error",
+    "errorCode": "0008"
   }
   ```
   
@@ -323,8 +382,7 @@ curl -X 'POST' \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
   -d '{
-  "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5MzA0ODk5LCJleHAiOjE3MDkzMDU3OTksImlhdCI6MTcwOTMwNDg5OX0.Hw1GmtW4O245qfD11cHOCQtQ91p2inAOlm6cIjL31rU"
+  "currentUserId": "user"
 }'
 ```
 
@@ -336,22 +394,30 @@ curl -X 'POST' \
  
   ```json
   {
-    "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5NjUwMzgwLCJleHAiOjE3MDk2NTEyODAsImlhdCI6MTcwOTY1MDM4MH0.D-JUimEo_6UDQvGf_ZggyXM_XoXEIaJ6R_RErMK0qa8",
     "result": true,
-    "error": ""
+    "errorDescription": "",
+    "errorCode": ""
   }
   ```
 
-- 400 - Invalid request, Invalid refresh token
+- 400 -
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid username and/or expired token",
+    "errorCode": "0006"
+  }
+  ```
+  
 - 500 - An internal error occurred 
 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Internal server error",
+    "errorCode": "0008"
   }
   ```
 
@@ -380,22 +446,38 @@ curl -X 'POST' \
  
   ```json
   {
-    "refreshToken": "w0czWF0pbdd9hB4h2d1YF+I3ctdzpcfUaOmKagmsy10=",
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdkZmdkIiwibmJmIjoxNzA5NjUwMzgwLCJleHAiOjE3MDk2NTEyODAsImlhdCI6MTcwOTY1MDM4MH0.D-JUimEo_6UDQvGf_ZggyXM_XoXEIaJ6R_RErMK0qa8",
     "result": true,
-    "error": ""
+    "errorDescription": "Success",
+    "errorCode": "0000"
   }
   ```
   
-- 400 - Invalid request, Invalid access token, Token is expired
+- 400 -
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid access token",
+    "errorCode": "0004"
+  }
+  ```
+  
+  ```json
+  {
+    "result": false,
+    "errorDescription": "Invalid username and/or expired token",
+    "errorCode": "0006"
+  }
+  ```
+  
 - 500 - An internal error occurred 
 
   ```json
   {
-    "refreshToken": "",
-    "accessToken": "",
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Internal server error",
+    "errorCode": "0008"
   }
   ```
 
@@ -411,8 +493,7 @@ curl -X 'POST' \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
   -d '{
-  "username": "user1",
-  "refreshToken": "VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=",
+  "username": "user",
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRnZGYiLCJuYmYiOjE3ODAyMzY0NjYsImV4cCI6MTc4MDIzNzM2NiwiaWF0IjoxNzgwMjM2NDY2fQ.6QI1U2Z_CD3r7DkKST6J1kkf2FV2dlHRBK18_eWik4g"
 }'
 ```
@@ -424,7 +505,7 @@ curl -X 'POST' \
   **Sample Response**
   ```json
   {
-    "username": "user1",
+    "username": "user",
     "refreshToken": "VfEQZ6WrHmhu/dSb+GcFpHsSbDr4XXbdKzHJQDZ3fWQ=",
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRnZGYiLCJuYmYiOjE3ODAyMzY0NjYsImV4cCI6MTc4MDIzNzM2NiwiaWF0IjoxNzgwMjM2NDY2fQ.6QI1U2Z_CD3r7DkKST6J1kkf2FV2dlHRBK18_eWik4g",
     "personalDetail": {
@@ -476,15 +557,23 @@ curl -X 'POST' \
 }
   ```
 
-- 400 - Invalid request, Invalid username and/or expired token (User does not exist)
-- 500 -
+- 400 -
 
-  ```json
+ ```json
   {
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Invalid username and/or expired token",
+    "errorCode": "0006"
   }
   ```
+
+- 500 -
+
+  {
+    "result": false,
+    "errorCode": "0008",
+    "errorDescription": "Internal server error"
+  }
 
 ## api/v1/user/upsert-userdata
 
@@ -552,30 +641,30 @@ curl -X 'POST' \
 
 - 201 - User information saved
   	
-  **Sample Response**
-  ```json
-  {    
-    "result": true,
-    "error": ""
-  }
-  ```
-
-  User doesn't exists
-
-  **Sample Response**
-  ```json
-  {    
-    "result": false,
-    "error": "User not found."
-  }
-  ```
-
-- 400 - Invalid request, Invalid username and/or expired token (User does not exist)
-- 500 -
-
   ```json
   {
+    "result": true,
+    "errorDescription": "Success",
+    "errorCode": "0000"
+  }
+  ```
+
+- 400 -
+  
+ ```json
+  {
     "result": false,
-    "error": "<Specific error>"
+    "errorDescription": "Invalid username and/or expired token",
+    "errorCode": "0006"
+  }
+  ```
+
+- 500 -
+
+  ```json  
+  {
+    "result": false,
+    "errorCode": "0008",
+    "errorDescription": "Internal server error"
   }
   ```
