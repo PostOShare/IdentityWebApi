@@ -42,6 +42,8 @@ dotnet restore
 -  Microsoft.AspNetCore.Identity.UI
 -  Microsoft.EntityFrameworkCore.SqlServer
 -  Microsoft.EntityFrameworkCore.Tools
+-  Serilog.AspNetCore
+-  Serilog.Sinks.File
 
 ## Development dependencies
 
