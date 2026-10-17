@@ -44,6 +44,8 @@ dotnet restore
 -  Microsoft.EntityFrameworkCore.Tools
 -  Serilog.AspNetCore
 -  Serilog.Sinks.File
+-  Microsoft.Extensions.Configuration.Json
+-  MimeKit
 
 ## Development dependencies
 
