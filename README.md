@@ -4,7 +4,7 @@
   
 [![GitHub Issues](https://img.shields.io/github/issues/PostOShare/IdentityWebApi.svg)](https://github.com/PostOShare/IdentityWebApi/issues)
 [![GitHub license](https://img.shields.io/github/license/PostOShare/IdentityWebApi)](https://github.com/PostOShare/IdentityWebApi/blob/master/LICENSE)
-![Static Badge](https://img.shields.io/badge/.net-6)
+![Static Badge](https://img.shields.io/badge/.net-6-green)
 
 </div>
 
@@ -31,8 +31,6 @@ dotnet restore
 cd ..\EntityORM
 dotnet restore
 ```
-
-The API and the SQL Server instance need to be published to a cloud provider to ensure that remote connections can call the API. [Azure](https://azure.microsoft.com/en-us) is used as the provider to publish the API and host the instance.
 
 # Dependencies
 
