@@ -4,7 +4,6 @@ using IdentityWebApi.Repositories;
 using IdentityWebApi.Services;
 using IdentityWebApiCommon.Configuration;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
@@ -16,17 +15,28 @@ namespace IdentityWebApi
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            Log.Logger = new LoggerConfiguration()
-                            .ReadFrom
-                            .Configuration(builder.Configuration).WriteTo.Logger(lc => lc
-                            .Filter.ByIncludingOnly(evt => evt.Level == LogEventLevel.Information || evt.Level == LogEventLevel.Error || evt.Level == LogEventLevel.Fatal)
-                            .WriteTo.File(builder.Configuration.GetSection("Serilog:WriteTo:0:Args:path").Value))
-                            .WriteTo.Logger(lc => lc
-                            .Filter.ByIncludingOnly(evt => evt.Level == LogEventLevel.Error || evt.Level == LogEventLevel.Fatal)
-                            .WriteTo.File(builder.Configuration.GetSection("Serilog:WriteTo:1:Args:path").Value))
-                            .CreateLogger();
 
-            IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+            var configuration = new ConfigurationBuilder()
+                                .SetBasePath(AppContext.BaseDirectory)
+                                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                                .Build();
+
+            string infoPath = configuration.GetSection("LogPaths:InfoPath").Value!.Replace("YYYYMMDD", DateTime.Now.ToString("yyyyMMdd"));
+            string errorPath = configuration.GetSection("LogPaths:ErrorPath").Value!.Replace("YYYYMMDD", DateTime.Now.ToString("yyyyMMdd"));
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.Logger(lc => lc
+                    .Filter.ByIncludingOnly(evt => evt.Level == LogEventLevel.Information || evt.Level == LogEventLevel.Warning || evt.Level == LogEventLevel.Error || evt.Level == LogEventLevel.Fatal)
+                    .WriteTo.File(infoPath))
+                
+                .WriteTo.Logger(lc => lc
+                    .Filter.ByIncludingOnly(evt => evt.Level == LogEventLevel.Error || evt.Level == LogEventLevel.Fatal)
+                    .WriteTo.Map(
+                        keySelector: evt => evt.Level,
+                        configure: (level, wt) => wt.File(errorPath)
+                    ))
+                .CreateLogger();
 
             builder.Host.UseSerilog();
 
@@ -52,7 +62,6 @@ namespace IdentityWebApi
                 options.JsonSerializerOptions.DefaultIgnoreCondition =
                     System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
             }); ;
-
             
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(swagger =>
