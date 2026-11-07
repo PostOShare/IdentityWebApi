@@ -3,3 +3,4 @@ obj/
 .vs/
 publish/
 Properties/
+/IdentityWebApi/IdentityWebApi/.config/dotnet-tools.json
