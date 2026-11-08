@@ -5,25 +5,29 @@ using IdentityWebApiCommon.Models;
 using IdentityWebApiCommon.Models.DTO.Request;
 using IdentityWebApiCommon.Models.DTO.Response;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 
 namespace IdentityWebApi.Services
 {
-    public class IdentityService: IIdentityService
+    public class IdentityService : IIdentityService
     {
         private readonly IdentityPMContext _context;
         private readonly IEmailRepository _mailService;
         private readonly ILogger<IdentityService> _logger;
         private readonly IConfigurationRoot _configuration;
+        private readonly IDistributedCache _distributedCache;
 
-        public IdentityService(IdentityPMContext context, IEmailRepository mailService, ILogger<IdentityService> logger, IConfigurationRoot configuration)
+        public IdentityService(IdentityPMContext context, IEmailRepository mailService, ILogger<IdentityService> logger,
+                               IConfigurationRoot configuration, IDistributedCache distributedCache)
         {
             _context = context;
             _mailService = mailService;
             _logger = logger;
             _configuration = configuration;
+            _distributedCache = distributedCache;
         }
 
         public async Task<BaseResponseDTO> Login(LoginRequestDTO loginRequestDTO)
@@ -48,7 +52,7 @@ namespace IdentityWebApi.Services
 
             if (current == null)
             {
-                _logger.LogError("Route: {method}, User: {username} | Invalid username and/or password",
+                _logger.LogInformation("Route: {method}, User: {username} | Invalid username and/or password",
                                  Constants.LoginIdentityRoute, loginRequestDTO.Username);
 
                 return new BaseResponseDTO
@@ -69,7 +73,7 @@ namespace IdentityWebApi.Services
 
             if (!exists)
             {
-                _logger.LogError("Route: {method}, User: {username} | Invalid username and/or password",
+                _logger.LogInformation("Route: {method}, User: {username} | Invalid username and/or password",
                                  Constants.LoginIdentityRoute, loginRequestDTO.Username);
                 return new BaseResponseDTO
                 {
@@ -347,7 +351,7 @@ namespace IdentityWebApi.Services
 
             if (user == null)
             {
-                _logger.LogError("Route: {method}, User: {username} | Invalid username",
+                _logger.LogInformation("Route: {method}, User: {username} | Invalid username",
                                  Constants.VerifyIdentityRoute, updateRequestDTO.Username);
                 return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
             }
@@ -414,7 +418,7 @@ namespace IdentityWebApi.Services
 
             if (exist == null)
             {
-                _logger.LogError("Route: {method}, User: {username} | Invalid username",
+                _logger.LogInformation("Route: {method}, User: {username} | Invalid username",
                                  Constants.ValidatePasscodeIdentityRoute, validatePasscodeRequestDTO.Username);
 
                 return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
@@ -480,7 +484,7 @@ namespace IdentityWebApi.Services
 
             if (current == null)
             {
-                _logger.LogError("Route: {method}, User: {username} | Invalid username",
+                _logger.LogInformation("Route: {method}, User: {username} | Invalid username",
                                  Constants.ChangeCredentialsIdentityRoute, updateRequestDTO.Username);
 
                 return new BaseResponseDTO { ErrorCode = ErrorCodes.UserValidationError, ErrorDescription = ErrorDescriptions.UserValidationError, Result = false };
@@ -531,7 +535,7 @@ namespace IdentityWebApi.Services
 
             if (authUser == null || string.IsNullOrEmpty(authUser.RefreshToken))
             {
-                _logger.LogError("Route: {method}, Username: {username} | Invalid username",
+                _logger.LogInformation("Route: {method}, Username: {username} | Invalid username",
                                  Constants.GenerateAccessTokenIdentityRoute, createTokenRequestDTO.CurrentUserId);
 
                 return new AuthResultDTO
@@ -542,17 +546,16 @@ namespace IdentityWebApi.Services
                     ErrorDescription = ErrorDescriptions.UsernameTokenError
                 };
             }
-           
+
             var refresh = authUser.RefreshToken;
 
             // if the refresh token's created time is more than 1 day it is expired
             if (DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.UtcNow) < 0)
             {
-                _logger.LogInformation("Route: {method} | Generating refresh token",
-                                  Constants.GenerateAccessTokenIdentityRoute);
+                _logger.LogInformation("Route: {method} | Generating refresh token", Constants.GenerateAccessTokenIdentityRoute);
 
                 try
-                { 
+                {
                     refresh = new TokenGenerationHelper().GenerateRefreshToken();
                     authUser.CreatedTime = DateTime.Now;
                     authUser.LastUpdatedTime = DateTime.Now;
@@ -605,10 +608,19 @@ namespace IdentityWebApi.Services
             _logger.LogInformation("Route: {method}, Refresh token: {token}, Access token: {accessToken} | Token(s) were created",
                                   Constants.GenerateAccessTokenIdentityRoute, refresh, access);
 
+            var options = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(Convert.ToDouble(_configuration["DistributedCacheSettings:CacheDuration"]))
+            };
+
+            await _distributedCache.SetStringAsync(createTokenRequestDTO.CurrentUserId, access, options);
+
             return new AuthResultDTO
             {
                 AccessToken = access,
-                Result = true
+                Result = true,
+                ErrorCode = ErrorCodes.Success,
+                ErrorDescription = ErrorDescriptions.Success
             };
         }
 
@@ -619,6 +631,37 @@ namespace IdentityWebApi.Services
 
             try
             {
+                // Attempt obtaining token from the Redis cache
+                string? token = await _distributedCache.GetStringAsync(validateTokenRequestDTO.CurrentUserId);
+
+                if (!string.IsNullOrEmpty(token))
+                {
+                    if (token.Equals(validateTokenRequestDTO.AccessToken))
+                    {
+                        _logger.LogInformation("Route: {method}, Access token: {token}, Username: {username} | Access token for user is valid",
+                                         Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
+                        return new AuthResultDTO
+                        {
+                            AccessToken = validateTokenRequestDTO.AccessToken,
+                            Result = true,
+                            ErrorCode = ErrorCodes.Success,
+                            ErrorDescription = ErrorDescriptions.Success
+                        };
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Route: {method}, Access token: {token}, Username: {username} | Invalid access token",
+                                         Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
+                        return new AuthResultDTO
+                        {
+                            AccessToken = validateTokenRequestDTO.AccessToken,
+                            Result = false,
+                            ErrorCode = ErrorCodes.InvalidAccessTokenError,
+                            ErrorDescription = ErrorDescriptions.InvalidAccessTokenError
+                        };
+                    }
+                }
+
                 UserAuth? authUser = null;
                 try
                 {
@@ -633,7 +676,7 @@ namespace IdentityWebApi.Services
 
                 if (authUser == null || string.IsNullOrEmpty(authUser.RefreshToken) || DateTime.Compare(authUser.CreatedTime.AddDays(1), DateTime.Now) < 0)
                 {
-                    _logger.LogError("Route: {method}, Access token: {token}, Username: {username} | Invalid refresh token",
+                    _logger.LogInformation("Route: {method}, Access token: {token}, Username: {username} | Invalid refresh token",
                                      Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
 
                     return new AuthResultDTO
@@ -644,10 +687,29 @@ namespace IdentityWebApi.Services
                         ErrorDescription = ErrorDescriptions.UsernameTokenError
                     };
                 }
+                else if (DateTime.Compare(authUser.LastUpdatedTime.AddHours(1), DateTime.Now) < 0)
+                {
+                    _logger.LogInformation("Route: {method}, Access token: {token}, Username: {username} | Access token has expired",
+                                     Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
+                    return new AuthResultDTO
+                    {
+                        AccessToken = validateTokenRequestDTO.AccessToken,
+                        Result = false,
+                        ErrorCode = ErrorCodes.InvalidAccessTokenError,
+                        ErrorDescription = ErrorDescriptions.InvalidAccessTokenError
+                    };
+                }
                 else
                 {
                     _logger.LogInformation("Route: {method}, Access token: {token}, Username: {username} | Access token for user is valid",
                                      Constants.GenerateAccessTokenIdentityRoute, validateTokenRequestDTO.AccessToken, validateTokenRequestDTO.CurrentUserId);
+
+                    var options = new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(Convert.ToDouble(_configuration["DistributedCacheSettings:CacheDuration"]))
+                    };
+
+                    await _distributedCache.SetStringAsync(validateTokenRequestDTO.CurrentUserId, authUser.AccessToken, options);
 
                     return new AuthResultDTO
                     {
@@ -663,12 +725,12 @@ namespace IdentityWebApi.Services
                 _logger.LogCritical("The token is invalid or unknown exception: {exception}", ex.Message);
 
                 return new AuthResultDTO
-                           {
-                               ErrorCode = ErrorCodes.InvalidAccessTokenError,
-                               ErrorDescription = ErrorDescriptions.InvalidAccessTokenError,
-                               Result = false
-                           };
-            }           
+                {
+                    ErrorCode = ErrorCodes.InvalidAccessTokenError,
+                    ErrorDescription = ErrorDescriptions.InvalidAccessTokenError,
+                    Result = false
+                };
+            }
         }
     }
 }
